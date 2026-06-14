@@ -11,7 +11,7 @@ export const storeCacheKey = (lat: number, lng: number) =>
 // In-memory layer so repeated calls within a session are instant
 const memCache = new Map<string, { store: LiquorStore; ts: number }>();
 
-export async function readStoreCache(key: string): Promise<LiquorStore | null> {
+export const readStoreCache = async (key: string): Promise<LiquorStore | null> => {
     const mem = memCache.get(key);
     if (mem && Date.now() - mem.ts < CACHE_TTL_MS) return mem.store;
     try {
@@ -27,7 +27,7 @@ export async function readStoreCache(key: string): Promise<LiquorStore | null> {
     }
 }
 
-export async function writeStoreCache(key: string, store: LiquorStore): Promise<void> {
+export const writeStoreCache = async (key: string, store: LiquorStore): Promise<void> => {
     const entry = { store, ts: Date.now() };
     memCache.set(key, entry);
     try {

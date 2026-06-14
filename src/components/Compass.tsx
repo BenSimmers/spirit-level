@@ -24,6 +24,25 @@ const { width } = Dimensions.get('window');
 export const COMPASS_SIZE = Math.min(width * 0.82, 320);
 const NEEDLE_HALF = COMPASS_SIZE * 0.21;
 
+const ROSE_LINE_STYLES = [0, 22.5, 45, 67.5].map((angle) => ({
+  transform: [{ rotate: `${angle}deg` }],
+} as const));
+
+const TICK_STYLES = Array.from({ length: 72 }, (_, i) => {
+  const deg = i * 5;
+  const isCardinal = deg % 90 === 0;
+  const isIntercardinal = deg % 45 === 0;
+  return {
+    transform: [
+      { rotate: `${deg}deg` },
+      { translateY: -(COMPASS_SIZE / 2 - 16) },
+    ],
+    height: isCardinal ? 18 : isIntercardinal ? 12 : 6,
+    width: isCardinal ? 3 : 1.5,
+    opacity: isCardinal ? 1 : isIntercardinal ? 0.75 : 0.4,
+  } as const;
+});
+
 export const Compass: React.FC<Props> = ({ heading, store, userLocation, loading = false }) => {
   const needleAnim = useRef(new Animated.Value(0)).current;
   const lastAngleRef = useRef(0);
@@ -38,7 +57,7 @@ export const Compass: React.FC<Props> = ({ heading, store, userLocation, loading
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 0.3, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1,   duration: 700, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
       ])
     );
     anim.start();
@@ -59,7 +78,7 @@ export const Compass: React.FC<Props> = ({ heading, store, userLocation, loading
       tension: 40,
       friction: 8,
     }).start();
-  }, [heading, store, userLocation]);
+  }, [heading, needleAnim, store, userLocation]);
 
   const rotate = needleAnim.interpolate({
     inputRange: [0, 1],
@@ -81,34 +100,12 @@ export const Compass: React.FC<Props> = ({ heading, store, userLocation, loading
       )}
       <View style={styles.innerBezel}>
         <View style={styles.compassFace}>
-          {[0, 22.5, 45, 67.5].map((angle) => (
-            <View
-              key={angle}
-              style={[styles.roseLine, { transform: [{ rotate: `${angle}deg` }] }]}
-            />
+          {ROSE_LINE_STYLES.map((roseStyle, i) => (
+            <View key={i} style={[styles.roseLine, roseStyle]} />
           ))}
-          {Array.from({ length: 72 }).map((_, i) => {
-            const deg = i * 5;
-            const isCardinal = deg % 90 === 0;
-            const isIntercardinal = deg % 45 === 0;
-            return (
-              <View
-                key={i}
-                style={[
-                  styles.tick,
-                  {
-                    transform: [
-                      { rotate: `${deg}deg` },
-                      { translateY: -(COMPASS_SIZE / 2 - 16) },
-                    ],
-                    height: isCardinal ? 18 : isIntercardinal ? 12 : 6,
-                    width: isCardinal ? 3 : 1.5,
-                    opacity: isCardinal ? 1 : isIntercardinal ? 0.75 : 0.4,
-                  },
-                ]}
-              />
-            );
-          })}
+          {TICK_STYLES.map((tickStyle, i) => (
+            <View key={i} style={[styles.tick, tickStyle]} />
+          ))}
 
           <Text style={[styles.cardinal, styles.cardinalN]}>N</Text>
           <Text style={[styles.cardinal, styles.cardinalS]}>S</Text>

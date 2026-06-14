@@ -4,6 +4,7 @@ import { Compass } from './src/components/Compass';
 import { StoreCard } from './src/components/StoreCard';
 import { useCompass } from './src/hooks/useCompass';
 import React from 'react';
+import { useRotatingMessage } from './src/hooks/useRotatingMessage';
 
 
 export default function App() {
@@ -95,21 +96,3 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 });
-const LOADING_MESSAGES = [
-  'Locating nearby stores…',
-  'Searching the area…',
-  'Checking OpenStreetMap data…',
-  'Finding the closest option…',
-  'Almost ready…',
-];
-
-function useRotatingMessage(active: boolean, intervalMs = 2500): string {
-  const [index, setIndex] = React.useState(0);
-  React.useEffect(() => {
-    if (!active) { setIndex(0); return; }
-    const id = setInterval(() => setIndex((i) => (i + 1) % LOADING_MESSAGES.length), intervalMs);
-    return () => clearInterval(id);
-  }, [active, intervalMs]);
-  return LOADING_MESSAGES[index];
-}
-

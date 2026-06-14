@@ -1,18 +1,16 @@
 import React from "react";
 
+
 const LOADING_MESSAGES = [
-    'Sniffing out the nearest bottle shop…',
-    'Consulting the spirits…',
-    'Following the scent of hops…',
-    'Dowsing for Dan Murphy\'s…',
-    'Triangulating the closest cold one…',
-    'Interrogating the locals…',
-    'Checking under every rock…',
-    'The compass never lies…',
-    'Almost there, promise…',
+    'Locating nearby stores…',
+    'Searching the area…',
+    'Checking OpenStreetMap data…',
+    'Finding the closest option…',
+    'Almost ready…',
 ];
 
-const useRotatingMessage = (active: boolean, intervalMs = 2500): string => {
+
+export const useRotatingMessage = (active: boolean, intervalMs = 2500): string => {
     const [index, setIndex] = React.useState(0);
     React.useEffect(() => {
         if (!active) return;
