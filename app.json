@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "liquorstore",
-    "slug": "liquorstore",
+    "name": "Spirit Level",
+    "slug": "spirit-level",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses your location to find the nearest liquor store.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.bensimmers.liquorstore"
+      "bundleIdentifier": "com.bensimmers.spiritlevel"
     },
     "android": {
       "permissions": [
@@ -28,7 +28,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.bensimmers.liquorstore"
+      "package": "com.bensimmers.spiritlevel"
     },
     "web": {
       "favicon": "./assets/favicon.png"
