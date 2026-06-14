@@ -5,18 +5,16 @@ import { StoreCard } from './src/components/StoreCard';
 import { useCompass } from './src/hooks/useCompass';
 import React from 'react';
 
+
 export default function App() {
   const { userLocation, heading, store, error, loading, refresh } = useCompass();
+  const loadingMessage = useRotatingMessage(loading);
 
   const statusText = React.useMemo(() => {
-    if (!userLocation) {
-      return 'Acquiring location…';
-    }
-    if (loading) {
-      return 'Searching for nearby stores…';
-    }
+    if (!userLocation) return 'Acquiring location…';
+    if (loading) return loadingMessage;
     return null;
-  }, [userLocation, loading]);
+  }, [userLocation, loading, loadingMessage]);
 
   return (
     <View style={styles.container}>
@@ -28,13 +26,16 @@ export default function App() {
       ) : statusText ? (
         <Text style={styles.statusText}>{statusText}</Text>
       ) : null}
-      <Compass heading={heading} store={store} userLocation={userLocation} />
-      {store && <StoreCard store={store} />}
+      <Compass heading={heading} store={store} userLocation={userLocation} loading={loading} />
+      {store && <StoreCard store={store} dimmed={loading} />}
       {userLocation && !loading && (
         <Pressable style={styles.refreshBtn} onPress={refresh}>
           <Text style={styles.refreshText}>Refresh</Text>
         </Pressable>
       )}
+      <Text style={styles.disclaimer}>
+        This app locates nearby stores only. No purchases are made through this app. For adults of legal drinking age only.
+      </Text>
     </View>
   );
 }
@@ -48,14 +49,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 48,
     paddingBottom: 24,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#c8960c',
-    letterSpacing: 2,
-    marginBottom: 8,
-    textTransform: 'uppercase',
   },
   statusText: {
     color: '#a08050',
@@ -93,4 +86,30 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
+  disclaimer: {
+    color: '#4a3a20',
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 16,
+    paddingHorizontal: 20,
+    fontStyle: 'italic',
+  },
 });
+const LOADING_MESSAGES = [
+  'Locating nearby stores…',
+  'Searching the area…',
+  'Checking OpenStreetMap data…',
+  'Finding the closest option…',
+  'Almost ready…',
+];
+
+function useRotatingMessage(active: boolean, intervalMs = 2500): string {
+  const [index, setIndex] = React.useState(0);
+  React.useEffect(() => {
+    if (!active) { setIndex(0); return; }
+    const id = setInterval(() => setIndex((i) => (i + 1) % LOADING_MESSAGES.length), intervalMs);
+    return () => clearInterval(id);
+  }, [active, intervalMs]);
+  return LOADING_MESSAGES[index];
+}
+

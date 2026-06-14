@@ -6,6 +6,7 @@ import React from 'react';
 // interface Props {
 type Props = {
     store: LiquorStore;
+    dimmed?: boolean;
 }
 
 export const OpenInMaps = ({ store }: { store: LiquorStore }): void => {
@@ -18,8 +19,8 @@ export const OpenInMaps = ({ store }: { store: LiquorStore }): void => {
     );
 };
 
-export const StoreCard: React.FC<Props> = ({ store }) => (
-    <View style={styles.infoCard}>
+export const StoreCard: React.FC<Props> = ({ store, dimmed = false }) => (
+    <View style={[styles.infoCard, dimmed && styles.infoCardDimmed]}>
         <Text style={styles.storeName}>{store.name}</Text>
         <Text style={styles.storeVicinity}>{store.vicinity}</Text>
         <Text style={styles.storeDist}>{formatDistance(store.distance)} away</Text>
@@ -39,6 +40,9 @@ const styles = StyleSheet.create({
         borderColor: '#c8960c55',
         alignItems: 'center',
         marginBottom: 14,
+    },
+    infoCardDimmed: {
+        opacity: 0.45,
     },
     storeName: {
         fontSize: 18,

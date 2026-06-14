@@ -17,15 +17,33 @@ interface Props {
   heading: number;
   store: LiquorStore | null;
   userLocation: UserLocation | null;
+  loading?: boolean;
 }
 
 const { width } = Dimensions.get('window');
 export const COMPASS_SIZE = Math.min(width * 0.82, 320);
 const NEEDLE_HALF = COMPASS_SIZE * 0.21;
 
-export const Compass: React.FC<Props> = ({ heading, store, userLocation }) => {
+export const Compass: React.FC<Props> = ({ heading, store, userLocation, loading = false }) => {
   const needleAnim = useRef(new Animated.Value(0)).current;
   const lastAngleRef = useRef(0);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Pulse the bezel ring while loading
+  useEffect(() => {
+    if (!loading) {
+      pulseAnim.setValue(1);
+      return;
+    }
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1,   duration: 700, useNativeDriver: true }),
+      ])
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [loading, pulseAnim]);
 
   useEffect(() => {
     if (!store || !userLocation) return;
@@ -51,6 +69,16 @@ export const Compass: React.FC<Props> = ({ heading, store, userLocation }) => {
 
   return (
     <View style={styles.outerBezel}>
+      {/* Pulsing brass loading ring */}
+      {loading && (
+        <Animated.View
+          style={[
+            styles.loadingRing,
+            { opacity: pulseAnim },
+          ]}
+          pointerEvents="none"
+        />
+      )}
       <View style={styles.innerBezel}>
         <View style={styles.compassFace}>
           {[0, 22.5, 45, 67.5].map((angle) => (
@@ -115,6 +143,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.65,
     shadowRadius: 14,
     elevation: 20,
+  },
+  loadingRing: {
+    position: 'absolute',
+    width: COMPASS_SIZE + 22,
+    height: COMPASS_SIZE + 22,
+    borderRadius: (COMPASS_SIZE + 22) / 2,
+    borderWidth: 4,
+    borderColor: BRASS,
   },
   innerBezel: {
     width: COMPASS_SIZE + 10,

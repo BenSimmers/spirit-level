@@ -1,1 +1,1 @@
-export const SEARCH_RADIUS_M: number = 10_000;
+export const SEARCH_RADIUS_M: number = 5_000;
