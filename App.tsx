@@ -3,12 +3,13 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Compass } from './src/components/Compass';
 import { StoreCard } from './src/components/StoreCard';
 import { useCompass } from './src/hooks/useCompass';
+import { fetchNearestStore } from './src/api/overpass';
 import React from 'react';
 import { useRotatingMessage } from './src/hooks/useRotatingMessage';
 
 
 export default function App() {
-  const { userLocation, heading, store, error, loading, refresh } = useCompass();
+  const { userLocation, heading, store, error, loading, refresh } = useCompass(fetchNearestStore);
   const loadingMessage = useRotatingMessage(loading);
 
   const statusText = React.useMemo(() => {

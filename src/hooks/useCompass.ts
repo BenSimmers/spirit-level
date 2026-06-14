@@ -1,14 +1,13 @@
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchNearestStore } from '../api/overpass';
 import { compassLogger as log } from '../logger';
 import { haversineDistance } from '../utils/geo';
-import type { LiquorStore, UserLocation } from '../types';
+import type { LiquorStore, StoreProvider, UserLocation } from '../types';
 
 // Must match the ~1 km cache grid in storeCache.ts (toFixed(2) ≈ 1.1 km)
 const REFETCH_THRESHOLD_M = 1000;
 
-export const useCompass = () => {
+export const useCompass = (storeProvider: StoreProvider) => {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [heading, setHeading] = useState(0);
   const [store, setStore] = useState<LiquorStore | null>(null);
@@ -36,14 +35,14 @@ export const useCompass = () => {
     setLoading(true);
     setError(null);
     try {
-      setStore(await fetchNearestStore(lat, lng, abortController.current.signal, skipCache));
+      setStore(await storeProvider(lat, lng, abortController.current.signal, skipCache));
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') return;
       setError(e instanceof Error ? e.message : 'Network error. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [storeProvider]);
 
   useEffect(() => {
     let cancelled = false;

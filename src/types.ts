@@ -17,3 +17,10 @@ export type UserLocation = {
     lat: number;
     lng: number;
 }
+
+export type StoreProvider = (
+    userLat: number,
+    userLng: number,
+    signal: AbortSignal,
+    skipCache?: boolean,
+) => Promise<LiquorStore>;
