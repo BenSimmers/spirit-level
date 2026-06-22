@@ -16,27 +16,13 @@
       },
       "bundleIdentifier": "com.bensimmers.liquorstore"
     },
-    "android": {
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
-      ],
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false,
-      "package": "com.bensimmers.liquorstore"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
     "extra": {
       "eas": {
         "projectId": "003cc16d-ab15-4935-a1c2-735e5985cd41"
       }
+    },
+    "android": {
+      "package": "com.bensimmers.liquorstore"
     }
   }
 }
