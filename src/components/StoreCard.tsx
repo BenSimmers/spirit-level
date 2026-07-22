@@ -1,4 +1,4 @@
-import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { LiquorStore } from '../types';
 import { formatDistance } from '../utils/geo';
 import React from 'react';
@@ -9,14 +9,25 @@ type Props = {
     dimmed?: boolean;
 }
 
-export const OpenInMaps = ({ store }: { store: LiquorStore }): void => {
-    const label = encodeURIComponent(store.name);
-    const url = Platform.OS === 'ios'
-        ? `maps:0,0?q=${label}@${store.lat},${store.lng}`
-        : `geo:${store.lat},${store.lng}?q=${store.lat},${store.lng}(${label})`;
-    Linking.openURL(url).catch(() =>
-        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${store.lat},${store.lng}`),
-    );
+export const openInMaps = async (store: LiquorStore): Promise<void> => {
+    // Parentheses break the geo: label delimiters and survive encodeURIComponent
+    const label = encodeURIComponent(store.name.replace(/[()]/g, ''));
+    const coords = `${store.lat},${store.lng}`;
+    const urls = Platform.OS === 'ios'
+        ? [`maps:0,0?q=${label}@${coords}`]
+        : [`geo:${coords}?q=${coords}(${label})`];
+    // Web fallback for devices with no native maps app (e.g. bare emulators)
+    urls.push(`https://www.google.com/maps/search/?api=1&query=${coords}`);
+
+    for (const url of urls) {
+        try {
+            await Linking.openURL(url);
+            return;
+        } catch {
+            // try the next candidate
+        }
+    }
+    Alert.alert('No maps app found', 'Install Google Maps to get directions.');
 };
 
 export const StoreCard: React.FC<Props> = ({ store, dimmed = false }) => (
@@ -24,7 +35,7 @@ export const StoreCard: React.FC<Props> = ({ store, dimmed = false }) => (
         <Text style={styles.storeName}>{store.name}</Text>
         <Text style={styles.storeVicinity}>{store.vicinity}</Text>
         <Text style={styles.storeDist}>{formatDistance(store.distance)} away</Text>
-        <Pressable style={styles.mapsBtn} onPress={() => OpenInMaps({ store })}>
+        <Pressable style={styles.mapsBtn} onPress={() => openInMaps(store)}>
             <Text style={styles.mapsBtnText}>Open in Maps</Text>
         </Pressable>
     </View>

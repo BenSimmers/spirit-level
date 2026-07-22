@@ -26,3 +26,8 @@ export const haversineDistance = (
 }
 
 export const formatDistance = (metres: number): string => metres < 1000 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(1)} km`;
+
+const CARDINALS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+
+export const bearingToCardinal = (bearing: number): string =>
+    CARDINALS[Math.round(((bearing % 360) + 360) % 360 / 45) % 8];

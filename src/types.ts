@@ -1,8 +1,8 @@
-export type OverpassElement = {
-    lat?: number;
-    lon?: number;
-    center?: { lat: number; lon: number };
-    tags?: Record<string, string>;
+export type GooglePlace = {
+    displayName?: { text: string };
+    location?: { latitude: number; longitude: number };
+    shortFormattedAddress?: string;
+    primaryType?: string;
 }
 
 export type LiquorStore = {

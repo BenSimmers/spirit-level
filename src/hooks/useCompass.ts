@@ -7,6 +7,15 @@ import type { LiquorStore, StoreProvider, UserLocation } from '../types';
 // Must match the ~1 km cache grid in storeCache.ts (toFixed(2) ≈ 1.1 km)
 const REFETCH_THRESHOLD_M = 1000;
 
+// Android can wait indefinitely for a fresh GPS fix; give up after this long
+const POSITION_TIMEOUT_MS = 10_000;
+
+const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T | null> =>
+  Promise.race([
+    promise,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+
 export const useCompass = (storeProvider: StoreProvider) => {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [heading, setHeading] = useState(0);
@@ -55,23 +64,49 @@ export const useCompass = (storeProvider: StoreProvider) => {
           return;
         }
 
-        // Stage 1 — fast Balanced fix (~1s), triggers store fetch immediately
-        const fastLoc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
+        // On Android, permission can be granted while the device-wide
+        // location toggle is off — getCurrentPositionAsync then hangs forever.
+        if (!(await Location.hasServicesEnabledAsync())) {
+          if (cancelled) return;
+          setError('Location services are turned off. Please enable them in Settings.');
+          return;
+        }
+
+        // Start the compass before waiting on a GPS fix
+        headingSub.current = await Location.watchHeadingAsync((h) => {
+          setHeading(h.magHeading >= 0 ? h.magHeading : h.trueHeading ?? 0);
         });
         if (cancelled) return;
-        setUserLocation({ lat: fastLoc.coords.latitude, lng: fastLoc.coords.longitude });
+
+        // Stage 0 — last known position: instant when available, may be stale
+        const lastKnown = await Location.getLastKnownPositionAsync();
+        if (cancelled) return;
+        if (lastKnown) {
+          setUserLocation({ lat: lastKnown.coords.latitude, lng: lastKnown.coords.longitude });
+        }
+
+        // Stage 1 — fast Balanced fix, triggers store fetch immediately
+        const fastLoc = await withTimeout(
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+          POSITION_TIMEOUT_MS,
+        );
+        if (cancelled) return;
+        if (fastLoc) {
+          setUserLocation({ lat: fastLoc.coords.latitude, lng: fastLoc.coords.longitude });
+        } else if (!lastKnown) {
+          setError('Couldn’t get a GPS fix. Make sure location is enabled and try again.');
+          return;
+        }
 
         // Stage 2 — high-accuracy fix, silently updates if meaningfully different
-        const preciseLoc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
+        const preciseLoc = await withTimeout(
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
+          POSITION_TIMEOUT_MS,
+        );
         if (cancelled) return;
-        setUserLocation({ lat: preciseLoc.coords.latitude, lng: preciseLoc.coords.longitude });
-
-        headingSub.current = await Location.watchHeadingAsync((h) => {
-          setHeading(h.magHeading ?? h.trueHeading ?? 0);
-        });
+        if (preciseLoc) {
+          setUserLocation({ lat: preciseLoc.coords.latitude, lng: preciseLoc.coords.longitude });
+        }
       } catch (e) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : 'Failed to get location.');

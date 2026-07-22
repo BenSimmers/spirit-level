@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
 import React from 'react';
 import type { LiquorStore, UserLocation } from '../types';
-import { calculateBearing } from '../utils/geo';
+import { bearingToCardinal, calculateBearing, formatDistance } from '../utils/geo';
 
 const BRASS = '#c8960c';
 const BRASS_DARK = '#6b4c00';
@@ -21,7 +21,7 @@ interface Props {
 }
 
 const { width } = Dimensions.get('window');
-export const COMPASS_SIZE = Math.min(width * 0.82, 320);
+export const COMPASS_SIZE = Math.min(width * 0.68, 250);
 const NEEDLE_HALF = COMPASS_SIZE * 0.21;
 
 const ROSE_LINE_STYLES = [0, 22.5, 45, 67.5].map((angle) => ({
@@ -86,6 +86,13 @@ export const Compass: React.FC<Props> = ({ heading, store, userLocation, loading
     extrapolate: 'extend',
   });
 
+  // Absolute (not heading-relative) direction, so the label doesn't flicker as the phone turns
+  const targetLabel = useMemo(() => {
+    if (!store || !userLocation) return null;
+    const bearing = calculateBearing(userLocation.lat, userLocation.lng, store.lat, store.lng);
+    return `${formatDistance(store.distance)} · ${bearingToCardinal(bearing)}`;
+  }, [store, userLocation]);
+
   return (
     <View style={styles.outerBezel}>
       {/* Pulsing brass loading ring */}
@@ -120,6 +127,12 @@ export const Compass: React.FC<Props> = ({ heading, store, userLocation, loading
           <View style={styles.jewelOuter}>
             <View style={styles.jewelInner} />
           </View>
+
+          {targetLabel && (
+            <View style={styles.labelPill} pointerEvents="none">
+              <Text style={styles.labelText}>{targetLabel}</Text>
+            </View>
+          )}
         </View>
       </View>
     </View>
@@ -236,5 +249,19 @@ const styles = StyleSheet.create({
     height: 7,
     borderRadius: 3.5,
     backgroundColor: BRASS_DARK,
+  },
+  labelPill: {
+    position: 'absolute',
+    bottom: 54,
+    backgroundColor: SEPIA + 'cc',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  labelText: {
+    color: PARCHMENT,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });

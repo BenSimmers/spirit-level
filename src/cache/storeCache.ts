@@ -6,7 +6,7 @@ const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 // toFixed(2) ≈ 1.1 km grid — keep in sync with REFETCH_THRESHOLD_M in useCompass
 export const storeCacheKey = (lat: number, lng: number) =>
-    `overpass_cache_${lat.toFixed(2)},${lng.toFixed(2)}`;
+    `places_cache_${lat.toFixed(2)},${lng.toFixed(2)}`;
 
 // In-memory layer so repeated calls within a session are instant
 const memCache = new Map<string, { store: LiquorStore; ts: number }>();

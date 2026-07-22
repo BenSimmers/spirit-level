@@ -24,6 +24,7 @@ export default [
         setInterval: 'readonly',
         clearInterval: 'readonly',
         console: 'readonly',
+        process: 'readonly', // Metro inlines process.env.EXPO_PUBLIC_* at build time
       },
     },
     plugins: {
@@ -57,6 +58,17 @@ export default [
 
       // No bare console — use the Logger class instead
       'no-console': 'error',
+    },
+  },
+  {
+    // Node-context config files (app.config.js etc.)
+    files: ['*.config.js'],
+    languageOptions: {
+      globals: {
+        module: 'writable',
+        require: 'readonly',
+        process: 'readonly',
+      },
     },
   },
   {

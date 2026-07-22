@@ -20,6 +20,6 @@ export class Logger {
     error(...args: unknown[]): void { this.log('error', ...args); }
 }
 
-export const overpassLogger = new Logger('overpass');
+export const placesLogger = new Logger('places');
 export const cacheLogger = new Logger('cache');
 export const compassLogger = new Logger('compass');
