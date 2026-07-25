@@ -23,3 +23,4 @@ export class Logger {
 export const placesLogger = new Logger('places');
 export const cacheLogger = new Logger('cache');
 export const compassLogger = new Logger('compass');
+export const browseLogger = new Logger('browse');

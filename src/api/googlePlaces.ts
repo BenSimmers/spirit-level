@@ -1,42 +1,32 @@
 import { GOOGLE_MAPS_API_KEY, SEARCH_RADIUS_M } from '../config';
 import { readStoreCache, storeCacheKey, writeStoreCache } from '../cache/storeCache';
 import { placesLogger as log } from '../logger';
-import type { GooglePlace, LiquorStore } from '../types';
+import { PLACE_CATEGORIES } from '../types';
+import type { GooglePlace, LiquorStore, NearbyPlace } from '../types';
 import { haversineDistance } from '../utils/geo';
 
 const PLACES_URL = 'https://places.googleapis.com/v1/places:searchNearby';
+const FIELD_MASK = 'places.displayName,places.location,places.shortFormattedAddress,places.primaryType';
 
 // Places API (New) nearby-search types that map to bottle shops
 const INCLUDED_TYPES = ['liquor_store'];
 
-/**
- * Fetch the nearest liquor store via the Google Places API (New).
- * @param signal     AbortSignal managed by the caller (useCompass hook).
- * @param skipCache  When true, bypasses the read cache (manual refresh).
- */
-export async function fetchNearestStore(
+// Nearby-search results within SEARCH_RADIUS_M, across the given place types, with retry
+// on transient failures (429 rate limit, 5xx, network errors).
+async function searchNearby(
   userLat: number,
   userLng: number,
+  includedTypes: string[],
+  maxResultCount: number,
   signal: AbortSignal,
-  skipCache = false,
-): Promise<LiquorStore> {
+): Promise<GooglePlace[]> {
   if (!GOOGLE_MAPS_API_KEY) {
     throw new Error('Missing Google Maps API key. Set EXPO_PUBLIC_GOOGLE_MAPS_API_KEY in .env.');
   }
 
-  const key = storeCacheKey(userLat, userLng);
-
-  if (!skipCache) {
-    const cached = await readStoreCache(key);
-    if (cached) {
-      log.debug('cache hit', key);
-      return cached;
-    }
-  }
-
   const body = JSON.stringify({
-    includedTypes: INCLUDED_TYPES,
-    maxResultCount: 5,
+    includedTypes,
+    maxResultCount,
     rankPreference: 'DISTANCE',
     locationRestriction: {
       circle: {
@@ -46,7 +36,7 @@ export async function fetchNearestStore(
     },
   });
 
-  log.debug('sending query');
+  log.debug('sending query', includedTypes);
   const t0 = Date.now();
 
   const MAX_ATTEMPTS = 3;
@@ -59,8 +49,7 @@ export async function fetchNearestStore(
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-          'X-Goog-FieldMask': 'places.displayName,places.location,places.shortFormattedAddress,places.primaryType',
-
+          'X-Goog-FieldMask': FIELD_MASK,
         },
         body,
         signal,
@@ -92,12 +81,37 @@ export async function fetchNearestStore(
 
   const data = (await res.json()) as { places?: GooglePlace[] };
   log.info(`places returned: ${data.places?.length ?? 0}`);
+  return data.places ?? [];
+}
+
+/**
+ * Fetch the nearest liquor store via the Google Places API (New).
+ * @param signal     AbortSignal managed by the caller (useCompass hook).
+ * @param skipCache  When true, bypasses the read cache (manual refresh).
+ */
+export async function fetchNearestStore(
+  userLat: number,
+  userLng: number,
+  signal: AbortSignal,
+  skipCache = false,
+): Promise<LiquorStore> {
+  const key = storeCacheKey(userLat, userLng);
+
+  if (!skipCache) {
+    const cached = await readStoreCache(key);
+    if (cached) {
+      log.debug('cache hit', key);
+      return cached;
+    }
+  }
+
+  const places = await searchNearby(userLat, userLng, INCLUDED_TYPES, 5, signal);
 
   // includedTypes matches places where liquor_store is ANY of their types, so
   // grocery/convenience chains that also sell alcohol (e.g. Trader Joe's) can
   // slip in. Restrict to places whose PRIMARY type is actually liquor_store.
   // rankPreference: DISTANCE means results arrive nearest-first.
-  const place = data.places?.find((p) => p.primaryType === 'liquor_store');
+  const place = places.find((p) => p.primaryType === 'liquor_store');
   if (!place?.location) {
     throw new Error(`No liquor stores found within ${SEARCH_RADIUS_M / 1000} km.`);
   }
@@ -113,4 +127,30 @@ export async function fetchNearestStore(
 
   await writeStoreCache(key, store);
   return store;
+}
+
+/**
+ * Fetch nearby liquor stores, bars, and night clubs for the Browse screen's
+ * category filter. Always fresh — not cached like fetchNearestStore.
+ */
+export async function fetchNearbyPlaces(
+  userLat: number,
+  userLng: number,
+  signal: AbortSignal,
+): Promise<NearbyPlace[]> {
+  const places = await searchNearby(userLat, userLng, PLACE_CATEGORIES, 20, signal);
+
+  return places
+    .filter((p): p is GooglePlace & { location: { latitude: number; longitude: number } } => !!p.location)
+    .map((p) => ({
+      name: p.displayName?.text ?? 'Unknown',
+      lat: p.location.latitude,
+      lng: p.location.longitude,
+      distance: haversineDistance(userLat, userLng, p.location.latitude, p.location.longitude),
+      vicinity: p.shortFormattedAddress ?? '',
+      category: (PLACE_CATEGORIES as string[]).includes(p.primaryType ?? '')
+        ? (p.primaryType as NearbyPlace['category'])
+        : 'other',
+    }))
+    .sort((a, b) => a.distance - b.distance);
 }

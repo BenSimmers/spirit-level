@@ -13,6 +13,25 @@ export type LiquorStore = {
     vicinity: string;
 }
 
+// Real Google Places (New) types we search across on the Browse screen.
+export type PlaceCategory = 'liquor_store' | 'bar' | 'pub' | 'sports_bar' | 'brewery' | 'wine_bar';
+
+export const PLACE_CATEGORIES: PlaceCategory[] = ['liquor_store', 'bar', 'pub', 'sports_bar', 'brewery', 'wine_bar'];
+
+export const CATEGORY_LABELS: Record<PlaceCategory, string> = {
+    liquor_store: 'Liquor Store',
+    bar: 'Bar',
+    pub: 'Pub',
+    sports_bar: 'Sports Bar',
+    brewery: 'Brewery',
+    wine_bar: 'Wine Bar',
+};
+
+export type NearbyPlace = LiquorStore & {
+    // 'other' covers results whose primaryType falls outside PLACE_CATEGORIES
+    category: PlaceCategory | 'other';
+}
+
 export type UserLocation = {
     lat: number;
     lng: number;
