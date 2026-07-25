@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { Platform, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
+import { Ionicons } from '@expo/vector-icons';
 import type { LiquorStore, UserLocation } from '../types';
+import { colors, fonts } from '../theme';
+import { formatDistance } from '../utils/geo';
 import { openInMaps } from './StoreCard';
 
 type Props = {
@@ -49,17 +52,40 @@ export const StoreMap: React.FC<Props> = ({ store, userLocation, dimmed = false,
                 rotateEnabled={!isThumbnail}
                 pitchEnabled={!isThumbnail}
             >
-                <Marker
-                    coordinate={{ latitude: store.lat, longitude: store.lng }}
-                    title={store.name}
-                    description={store.vicinity || undefined}
-                    pinColor="#c8960c"
-                    onCalloutPress={() => openInMaps(store)}
-                />
+                {isThumbnail ? (
+                    <Marker
+                        coordinate={{ latitude: store.lat, longitude: store.lng }}
+                        title={store.name}
+                        description={store.vicinity || undefined}
+                        pinColor={colors.primary}
+                        onCalloutPress={() => openInMaps(store)}
+                    />
+                ) : (
+                    <Marker
+                        coordinate={{ latitude: store.lat, longitude: store.lng }}
+                        anchor={{ x: 0.5, y: 1 }}
+                        onCalloutPress={() => openInMaps(store)}
+                    >
+                        <View style={styles.markerWrap}>
+                            <View style={styles.markerBadge}>
+                                <Ionicons name="storefront-outline" size={18} color={colors.background} />
+                            </View>
+                            <View style={styles.markerLabelPill}>
+                                <Text style={styles.markerLabelText} numberOfLines={1}>{store.name}</Text>
+                            </View>
+                        </View>
+                    </Marker>
+                )}
             </MapView>
             {isThumbnail && (
                 <View style={styles.expandHint}>
                     <Text style={styles.expandHintText}>Tap to expand</Text>
+                </View>
+            )}
+            {!isThumbnail && (
+                <View style={styles.distanceBadge} pointerEvents="none">
+                    <Ionicons name="navigate-circle-outline" size={16} color={colors.primary} />
+                    <Text style={styles.distanceBadgeText}>{formatDistance(store.distance)}</Text>
                 </View>
             )}
         </View>
@@ -69,10 +95,10 @@ export const StoreMap: React.FC<Props> = ({ store, userLocation, dimmed = false,
 // Google Maps (Android) styling to match the app's dark palette;
 // iOS Apple Maps uses userInterfaceStyle="dark" instead
 const DARK_MAP_STYLE = [
-    { elementType: 'geometry', stylers: [{ color: '#1c1005' }] },
-    { elementType: 'labels.text.fill', stylers: [{ color: '#a08050' }] },
-    { elementType: 'labels.text.stroke', stylers: [{ color: '#100a02' }] },
-    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2a1c08' }] },
+    { elementType: 'geometry', stylers: [{ color: colors.surface }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: colors.body }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: colors.background }] },
+    { featureType: 'road', elementType: 'geometry', stylers: [{ color: colors.surfaceAlt }] },
     { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0a1420' }] },
     { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
 ];
@@ -81,10 +107,10 @@ const styles = StyleSheet.create({
     mapCard: {
         width: '100%',
         height: 180,
-        borderRadius: 10,
+        borderRadius: 16,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: '#c8960c55',
+        borderColor: colors.border,
         marginBottom: 14,
     },
     mapCardThumbnail: {
@@ -104,14 +130,59 @@ const styles = StyleSheet.create({
         position: 'absolute',
         right: 8,
         bottom: 8,
-        backgroundColor: '#100a02cc',
+        backgroundColor: colors.surfaceAlt + 'ee',
         borderRadius: 8,
         paddingHorizontal: 8,
         paddingVertical: 3,
     },
     expandHintText: {
-        color: '#f0dca4',
+        color: colors.headline,
+        fontFamily: fonts.label,
         fontSize: 10,
-        fontWeight: '600',
+    },
+    distanceBadge: {
+        position: 'absolute',
+        top: 12,
+        right: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        backgroundColor: colors.background + 'dd',
+        borderRadius: 14,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    distanceBadgeText: {
+        color: colors.headline,
+        fontFamily: fonts.labelBold,
+        fontSize: 12,
+    },
+    markerWrap: {
+        alignItems: 'center',
+    },
+    markerBadge: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        backgroundColor: colors.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: colors.background,
+    },
+    markerLabelPill: {
+        marginTop: 4,
+        maxWidth: 140,
+        backgroundColor: colors.background + 'e6',
+        borderRadius: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+    },
+    markerLabelText: {
+        color: colors.headline,
+        fontFamily: fonts.labelBold,
+        fontSize: 11,
     },
 });

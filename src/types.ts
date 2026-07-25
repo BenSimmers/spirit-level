@@ -3,6 +3,10 @@ export type GooglePlace = {
     location?: { latitude: number; longitude: number };
     shortFormattedAddress?: string;
     primaryType?: string;
+    rating?: number;
+    userRatingCount?: number;
+    nationalPhoneNumber?: string;
+    currentOpeningHours?: { openNow?: boolean };
 }
 
 export type LiquorStore = {
@@ -11,11 +15,13 @@ export type LiquorStore = {
     lng: number;
     distance: number;
     vicinity: string;
+    rating?: number;
+    ratingCount?: number;
+    phone?: string;
+    openNow?: boolean;
 }
 
-// Real Google Places (New) types we search across on the Browse screen.
 export type PlaceCategory = 'liquor_store' | 'bar' | 'pub' | 'sports_bar' | 'brewery' | 'wine_bar';
-
 export const PLACE_CATEGORIES: PlaceCategory[] = ['liquor_store', 'bar', 'pub', 'sports_bar', 'brewery', 'wine_bar'];
 
 export const CATEGORY_LABELS: Record<PlaceCategory, string> = {

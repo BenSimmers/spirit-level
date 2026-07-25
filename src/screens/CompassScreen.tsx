@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Compass } from '../components/Compass';
 import { StoreCard } from '../components/StoreCard';
+import { StoreDetailSheet } from '../components/StoreDetailSheet';
 import { StoreMap } from '../components/StoreMap';
 import { useCompass } from '../hooks/useCompass';
 import { fetchNearestStore } from '../api/googlePlaces';
 import { useRotatingMessage } from '../hooks/useRotatingMessage';
+import { colors, fonts } from '../theme';
 
 export const CompassScreen: React.FC = () => {
   const [mapExpanded, setMapExpanded] = useState(false);
@@ -29,7 +32,7 @@ export const CompassScreen: React.FC = () => {
             onPress={refresh}
             disabled={loading || !userLocation}
           >
-            <Text style={styles.refreshIcon}>↻</Text>
+            <Ionicons name="refresh" size={16} color={colors.primary} />
           </Pressable>
         </View>
 
@@ -68,12 +71,15 @@ export const CompassScreen: React.FC = () => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle} numberOfLines={1}>{store?.name}</Text>
               <Pressable style={styles.modalCloseBtn} onPress={() => setMapExpanded(false)}>
-                <Text style={styles.modalCloseText}>✕</Text>
+                <Ionicons name="close" size={16} color={colors.primary} />
               </Pressable>
             </View>
-            {store && userLocation && (
-              <StoreMap store={store} userLocation={userLocation} variant="full" style={styles.modalMap} />
-            )}
+            <View style={styles.modalMapWrap}>
+              {store && userLocation && (
+                <StoreMap store={store} userLocation={userLocation} variant="full" style={styles.modalMap} />
+              )}
+              {store && <StoreDetailSheet store={store} />}
+            </View>
           </SafeAreaView>
         </SafeAreaProvider>
       </Modal>
@@ -84,7 +90,7 @@ export const CompassScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#100a02',
+    backgroundColor: colors.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -102,9 +108,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   headerTitle: {
-    color: '#a08050',
+    color: colors.primary,
+    fontFamily: fonts.label,
     fontSize: 13,
-    fontWeight: '700',
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -113,17 +119,12 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     borderWidth: 1,
-    borderColor: '#c8960c',
+    borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   refreshIconBtnDisabled: {
     opacity: 0.35,
-  },
-  refreshIcon: {
-    color: '#c8960c',
-    fontSize: 18,
-    fontWeight: '700',
   },
   statusSlot: {
     minHeight: 34,
@@ -132,20 +133,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   statusText: {
-    color: '#a08050',
+    color: colors.muted,
+    fontFamily: fonts.body,
     fontSize: 14,
     fontStyle: 'italic',
   },
   errorBox: {
-    backgroundColor: '#2a1000',
+    backgroundColor: colors.dangerBg,
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#6b2000',
+    borderColor: colors.dangerBorder,
     width: '100%',
   },
   errorText: {
-    color: '#e07040',
+    color: colors.danger,
+    fontFamily: fonts.body,
     textAlign: 'center',
     fontSize: 13,
   },
@@ -153,15 +156,15 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   disclaimer: {
-    color: '#4a3a20',
+    color: colors.muted,
+    fontFamily: fonts.label,
     fontSize: 10,
     textAlign: 'center',
     marginTop: 10,
-    fontStyle: 'italic',
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#100a02',
+    backgroundColor: colors.background,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -171,9 +174,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   modalTitle: {
-    color: '#f0dca4',
+    color: colors.headline,
+    fontFamily: fonts.headline,
     fontSize: 16,
-    fontWeight: '700',
     flex: 1,
     marginRight: 12,
   },
@@ -182,14 +185,12 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#c8960c',
+    borderColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalCloseText: {
-    color: '#c8960c',
-    fontSize: 15,
-    fontWeight: '700',
+  modalMapWrap: {
+    flex: 1,
   },
   modalMap: {
     flex: 1,

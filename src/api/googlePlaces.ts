@@ -6,7 +6,16 @@ import type { GooglePlace, LiquorStore, NearbyPlace } from '../types';
 import { haversineDistance } from '../utils/geo';
 
 const PLACES_URL = 'https://places.googleapis.com/v1/places:searchNearby';
-const FIELD_MASK = 'places.displayName,places.location,places.shortFormattedAddress,places.primaryType';
+const FIELD_MASK = [
+  'places.displayName',
+  'places.location',
+  'places.shortFormattedAddress',
+  'places.primaryType',
+  'places.rating',
+  'places.userRatingCount',
+  'places.nationalPhoneNumber',
+  'places.currentOpeningHours.openNow',
+].join(',');
 
 // Places API (New) nearby-search types that map to bottle shops
 const INCLUDED_TYPES = ['liquor_store'];
@@ -123,6 +132,10 @@ export async function fetchNearestStore(
     lng,
     distance: haversineDistance(userLat, userLng, lat, lng),
     vicinity: place.shortFormattedAddress ?? '',
+    rating: place.rating,
+    ratingCount: place.userRatingCount,
+    phone: place.nationalPhoneNumber,
+    openNow: place.currentOpeningHours?.openNow,
   };
 
   await writeStoreCache(key, store);
@@ -148,6 +161,10 @@ export async function fetchNearbyPlaces(
       lng: p.location.longitude,
       distance: haversineDistance(userLat, userLng, p.location.latitude, p.location.longitude),
       vicinity: p.shortFormattedAddress ?? '',
+      rating: p.rating,
+      ratingCount: p.userRatingCount,
+      phone: p.nationalPhoneNumber,
+      openNow: p.currentOpeningHours?.openNow,
       category: (PLACE_CATEGORIES as string[]).includes(p.primaryType ?? '')
         ? (p.primaryType as NearbyPlace['category'])
         : 'other',

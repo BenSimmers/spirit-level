@@ -2,16 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
 import React from 'react';
 import type { LiquorStore, UserLocation } from '../types';
+import { colors, fonts } from '../theme';
 import { bearingToCardinal, calculateBearing, formatDistance } from '../utils/geo';
-
-const BRASS = '#c8960c';
-const BRASS_DARK = '#6b4c00';
-const BEZEL_OUTER = '#2e1a00';
-const PARCHMENT = '#f0dca4';
-const ROSE_LINE = '#c8a96e';
-const SEPIA = '#1a0800';
-const CRIMSON = '#8b0000';
-const IVORY = '#e8dfc0';
 
 interface Props {
   heading: number;
@@ -22,11 +14,7 @@ interface Props {
 
 const { width } = Dimensions.get('window');
 export const COMPASS_SIZE = Math.min(width * 0.68, 250);
-const NEEDLE_HALF = COMPASS_SIZE * 0.21;
-
-const ROSE_LINE_STYLES = [0, 22.5, 45, 67.5].map((angle) => ({
-  transform: [{ rotate: `${angle}deg` }],
-} as const));
+const NEEDLE_LENGTH = COMPASS_SIZE * 0.33;
 
 const TICK_STYLES = Array.from({ length: 72 }, (_, i) => {
   const deg = i * 5;
@@ -35,11 +23,11 @@ const TICK_STYLES = Array.from({ length: 72 }, (_, i) => {
   return {
     transform: [
       { rotate: `${deg}deg` },
-      { translateY: -(COMPASS_SIZE / 2 - 16) },
+      { translateY: -(COMPASS_SIZE / 2 - 14) },
     ],
-    height: isCardinal ? 18 : isIntercardinal ? 12 : 6,
-    width: isCardinal ? 3 : 1.5,
-    opacity: isCardinal ? 1 : isIntercardinal ? 0.75 : 0.4,
+    height: isCardinal ? 14 : isIntercardinal ? 9 : 5,
+    width: isCardinal ? 2 : 1,
+    backgroundColor: isCardinal ? colors.secondary : 'rgba(255,255,255,0.18)',
   } as const;
 });
 
@@ -48,7 +36,7 @@ export const Compass: React.FC<Props> = ({ heading, store, userLocation, loading
   const lastAngleRef = useRef(0);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Pulse the bezel ring while loading
+  // Pulse the ring while loading
   useEffect(() => {
     if (!loading) {
       pulseAnim.setValue(1);
@@ -56,7 +44,7 @@ export const Compass: React.FC<Props> = ({ heading, store, userLocation, loading
     }
     const anim = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0.25, duration: 700, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
       ])
     );
@@ -94,103 +82,64 @@ export const Compass: React.FC<Props> = ({ heading, store, userLocation, loading
   }, [store, userLocation]);
 
   return (
-    <View style={styles.outerBezel}>
-      {/* Pulsing brass loading ring */}
+    <View style={styles.wrap}>
       {loading && (
         <Animated.View
-          style={[
-            styles.loadingRing,
-            { opacity: pulseAnim },
-          ]}
+          style={[styles.loadingRing, { opacity: pulseAnim }]}
           pointerEvents="none"
         />
       )}
-      <View style={styles.innerBezel}>
-        <View style={styles.compassFace}>
-          {ROSE_LINE_STYLES.map((roseStyle, i) => (
-            <View key={i} style={[styles.roseLine, roseStyle]} />
-          ))}
-          {TICK_STYLES.map((tickStyle, i) => (
-            <View key={i} style={[styles.tick, tickStyle]} />
-          ))}
+      <View style={styles.compassFace}>
+        {TICK_STYLES.map((tickStyle, i) => (
+          <View key={i} style={[styles.tick, tickStyle]} />
+        ))}
 
-          <Text style={[styles.cardinal, styles.cardinalN]}>N</Text>
-          <Text style={[styles.cardinal, styles.cardinalS]}>S</Text>
-          <Text style={[styles.cardinal, styles.cardinalE]}>E</Text>
-          <Text style={[styles.cardinal, styles.cardinalW]}>W</Text>
+        <Text style={[styles.cardinal, styles.cardinalN]}>N</Text>
+        <Text style={[styles.cardinal, styles.cardinalMuted, styles.cardinalS]}>S</Text>
+        <Text style={[styles.cardinal, styles.cardinalMuted, styles.cardinalE]}>E</Text>
+        <Text style={[styles.cardinal, styles.cardinalMuted, styles.cardinalW]}>W</Text>
 
-          <Animated.View style={[styles.needleWrap, { transform: [{ rotate }] }]}>
-            <View style={styles.needleNorth} />
-            <View style={styles.needleSouth} />
-          </Animated.View>
+        <Animated.View style={[styles.needle, { transform: [{ rotate }] }]} />
+        <View style={styles.pivot} />
 
-          <View style={styles.jewelOuter}>
-            <View style={styles.jewelInner} />
+        {targetLabel && (
+          <View style={styles.labelPill} pointerEvents="none">
+            <Text style={styles.labelText}>{targetLabel}</Text>
           </View>
-
-          {targetLabel && (
-            <View style={styles.labelPill} pointerEvents="none">
-              <Text style={styles.labelText}>{targetLabel}</Text>
-            </View>
-          )}
-        </View>
+        )}
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  outerBezel: {
-    width: COMPASS_SIZE + 22,
-    height: COMPASS_SIZE + 22,
-    borderRadius: (COMPASS_SIZE + 22) / 2,
-    backgroundColor: BEZEL_OUTER,
+  wrap: {
+    width: COMPASS_SIZE + 16,
+    height: COMPASS_SIZE + 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.65,
-    shadowRadius: 14,
-    elevation: 20,
   },
   loadingRing: {
     position: 'absolute',
-    width: COMPASS_SIZE + 22,
-    height: COMPASS_SIZE + 22,
-    borderRadius: (COMPASS_SIZE + 22) / 2,
-    borderWidth: 4,
-    borderColor: BRASS,
-  },
-  innerBezel: {
-    width: COMPASS_SIZE + 10,
-    height: COMPASS_SIZE + 10,
-    borderRadius: (COMPASS_SIZE + 10) / 2,
-    backgroundColor: BRASS,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: COMPASS_SIZE + 16,
+    height: COMPASS_SIZE + 16,
+    borderRadius: (COMPASS_SIZE + 16) / 2,
+    borderWidth: 2,
+    borderColor: colors.primary,
   },
   compassFace: {
     width: COMPASS_SIZE,
     height: COMPASS_SIZE,
     borderRadius: COMPASS_SIZE / 2,
-    backgroundColor: PARCHMENT,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
     borderWidth: 2,
-    borderColor: BRASS_DARK,
-  },
-  roseLine: {
-    position: 'absolute',
-    width: 1.5,
-    height: COMPASS_SIZE * 0.82,
-    backgroundColor: ROSE_LINE,
-    opacity: 0.35,
+    borderColor: colors.secondary,
   },
   tick: {
     position: 'absolute',
-    backgroundColor: BRASS_DARK,
     top: '50%',
     left: '50%',
     marginLeft: -1,
@@ -198,70 +147,54 @@ const styles = StyleSheet.create({
   },
   cardinal: {
     position: 'absolute',
-    color: SEPIA,
-    fontWeight: '900',
-    fontSize: 22,
-    letterSpacing: -0.5,
+    fontFamily: fonts.headlineSemi,
+    fontSize: 18,
+    color: colors.primary,
   },
-  cardinalN: { top: 26 },
-  cardinalS: { bottom: 26 },
-  cardinalE: { right: 20 },
-  cardinalW: { left: 20 },
-  needleWrap: {
+  cardinalMuted: {
+    color: colors.muted,
+  },
+  cardinalN: { top: 22 },
+  cardinalS: { bottom: 22 },
+  cardinalE: { right: 18 },
+  cardinalW: { left: 18 },
+  needle: {
     position: 'absolute',
-    width: NEEDLE_HALF * 0.6,
-    height: NEEDLE_HALF * 2,
-    alignItems: 'center',
+    top: '50%',
+    left: '50%',
+    width: 2.5,
+    height: NEEDLE_LENGTH,
+    marginLeft: -1.25,
+    marginTop: -NEEDLE_LENGTH,
+    backgroundColor: colors.primary,
+    borderRadius: 1.5,
+    transformOrigin: 'bottom',
   },
-  needleNorth: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 3,
-    borderRightWidth: 3,
-    borderBottomWidth: NEEDLE_HALF,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: CRIMSON,
-  },
-  needleSouth: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 3,
-    borderRightWidth: 3,
-    borderTopWidth: NEEDLE_HALF,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderTopColor: IVORY,
-  },
-  jewelOuter: {
+  pivot: {
     position: 'absolute',
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: BRASS,
-    alignItems: 'center',
-    justifyContent: 'center',
+    top: '50%',
+    left: '50%',
+    width: 16,
+    height: 16,
+    marginTop: -8,
+    marginLeft: -8,
+    borderRadius: 8,
     borderWidth: 2,
-    borderColor: BRASS_DARK,
-  },
-  jewelInner: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: BRASS_DARK,
+    borderColor: colors.primary,
+    backgroundColor: colors.surface,
   },
   labelPill: {
     position: 'absolute',
-    bottom: 54,
-    backgroundColor: SEPIA + 'cc',
+    bottom: 50,
+    backgroundColor: colors.surfaceAlt + 'ee',
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   labelText: {
-    color: PARCHMENT,
+    color: colors.headline,
+    fontFamily: fonts.labelBold,
     fontSize: 12,
-    fontWeight: '700',
     letterSpacing: 0.3,
   },
 });

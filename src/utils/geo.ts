@@ -4,7 +4,7 @@ export const calculateBearing = (
     lat1: number, lon1: number,
     lat2: number, lon2: number,
 ): number => {
-    const dLon = toRad(lon2 - lon1);
+    const dLon = toRad(lon2 - lon1) 
     const lat1Rad = toRad(lat1);
     const lat2Rad = toRad(lat2);
     const bearingX = Math.sin(dLon) * Math.cos(lat2Rad);

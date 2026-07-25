@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors, fonts } from '../theme';
 
 export const AGE_VERIFIED_KEY = 'age_verified_v1';
 
@@ -39,48 +40,47 @@ export const AgeGate: React.FC<Props> = ({ onVerified }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#100a02',
+        backgroundColor: colors.background,
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 32,
     },
     title: {
         fontSize: 32,
-        fontWeight: '800',
-        color: '#f0dca4',
-        letterSpacing: 1,
+        fontFamily: fonts.headline,
+        color: colors.headline,
+        letterSpacing: 0.5,
     },
     subtitle: {
         fontSize: 14,
-        color: '#a08050',
-        fontStyle: 'italic',
+        fontFamily: fonts.body,
+        color: colors.body,
         marginTop: 6,
     },
     divider: {
         width: 60,
         height: 2,
-        backgroundColor: '#6b4c00',
+        backgroundColor: colors.border,
         marginVertical: 28,
     },
     body: {
-        color: '#c8b088',
+        color: colors.body,
+        fontFamily: fonts.body,
         fontSize: 14,
         textAlign: 'center',
         lineHeight: 20,
         marginBottom: 14,
     },
     confirmBtn: {
-        backgroundColor: '#c8960c',
-        borderRadius: 8,
+        backgroundColor: colors.primary,
+        borderRadius: 10,
         paddingHorizontal: 28,
         paddingVertical: 14,
         marginTop: 24,
-        borderWidth: 1,
-        borderColor: '#6b4c00',
     },
     confirmText: {
-        color: '#100a02',
-        fontWeight: '800',
+        color: colors.background,
+        fontFamily: fonts.labelBold,
         fontSize: 15,
         letterSpacing: 0.5,
         textTransform: 'uppercase',

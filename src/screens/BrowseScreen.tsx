@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { openInMaps } from '../components/StoreCard';
+import { Ionicons } from '@expo/vector-icons';
+import { callStore, openInMaps } from '../components/StoreCard';
 import { useNearbyPlaces } from '../hooks/useNearbyPlaces';
 import { CATEGORY_LABELS, PLACE_CATEGORIES } from '../types';
 import type { NearbyPlace, PlaceCategory } from '../types';
+import { colors, fonts } from '../theme';
 import { formatDistance } from '../utils/geo';
 
 type Filter = PlaceCategory | 'all';
@@ -15,30 +17,66 @@ const filterLabel = (f: Filter): string => (f === 'all' ? 'All' : CATEGORY_LABEL
 
 export const BrowseScreen: React.FC = () => {
   const [filter, setFilter] = useState<Filter>('all');
+  const [search, setSearch] = useState('');
   const { places, error, loading, refresh } = useNearbyPlaces();
 
-  const visiblePlaces = useMemo(
-    () => (filter === 'all' ? places : places.filter((p) => p.category === filter)),
-    [places, filter],
-  );
+  const visiblePlaces = useMemo(() => {
+    const byCategory = filter === 'all' ? places : places.filter((p) => p.category === filter);
+    const query = search.trim().toLowerCase();
+    if (!query) return byCategory;
+    return byCategory.filter(
+      (p) => p.name.toLowerCase().includes(query) || p.vicinity.toLowerCase().includes(query),
+    );
+  }, [places, filter, search]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Browse</Text>
+      <View style={styles.topBar}>
+        <Text style={styles.topBarTitle}>Compass</Text>
+        <Pressable
+          style={[styles.refreshIconBtn, loading && styles.refreshIconBtnDisabled]}
+          onPress={refresh}
+          disabled={loading}
+        >
+          <Ionicons name="refresh" size={16} color={colors.primary} />
+        </Pressable>
       </View>
 
-      <View style={styles.chipRow}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Browse</Text>
+        <Text style={styles.headerSubtitle}>Explore premium venues in your vicinity.</Text>
+      </View>
+
+      <View style={styles.searchBar}>
+        <Ionicons name="search-outline" size={17} color={colors.muted} />
+        <TextInput
+          style={styles.searchInput}
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search destinations…"
+          placeholderTextColor={colors.muted}
+          autoCorrect={false}
+        />
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.chipRowOuter}
+        contentContainerStyle={styles.chipRow}
+      >
         {FILTERS.map((f) => (
           <Pressable
             key={f}
             onPress={() => setFilter(f)}
             style={[styles.chip, filter === f && styles.chipActive]}
           >
-            <Text style={[styles.chipText, filter === f && styles.chipTextActive]}>{filterLabel(f)}</Text>
+            <Text style={[styles.chipText, filter === f && styles.chipTextActive]} numberOfLines={1}>
+              {filterLabel(f)}
+            </Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
 
       {error ? (
         <View style={styles.errorBox}>
@@ -49,7 +87,7 @@ export const BrowseScreen: React.FC = () => {
           data={visiblePlaces}
           keyExtractor={(item, i) => `${item.name}-${item.lat}-${item.lng}-${i}`}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor="#c8960c" />}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />}
           renderItem={({ item }) => <PlaceRow place={item} />}
           ListEmptyComponent={
             !loading ? (
@@ -64,128 +102,218 @@ export const BrowseScreen: React.FC = () => {
 
 const PlaceRow: React.FC<{ place: NearbyPlace }> = ({ place }) => (
   <Pressable style={styles.row} onPress={() => openInMaps(place)}>
-    <View style={styles.rowMain}>
-      <Text style={styles.rowName} numberOfLines={1}>{place.name}</Text>
-      {place.vicinity ? <Text style={styles.rowVicinity} numberOfLines={1}>{place.vicinity}</Text> : null}
-      {place.category !== 'other' && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{CATEGORY_LABELS[place.category]}</Text>
+    <View style={styles.rowTop}>
+      <View style={styles.rowMain}>
+        <View style={styles.rowNameLine}>
+          <Text style={styles.rowName} numberOfLines={1}>{place.name}</Text>
+          {place.category !== 'other' && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{CATEGORY_LABELS[place.category]}</Text>
+            </View>
+          )}
         </View>
-      )}
+        {place.vicinity ? <Text style={styles.rowVicinity} numberOfLines={1}>{place.vicinity}</Text> : null}
+      </View>
+      <Text style={styles.rowDist}>{formatDistance(place.distance)}</Text>
     </View>
-    <Text style={styles.rowDist}>{formatDistance(place.distance)}</Text>
+    {place.phone && (
+      <Pressable style={styles.callBtn} onPress={() => callStore(place.phone!)}>
+        <Ionicons name="call-outline" size={13} color={colors.body} />
+        <Text style={styles.callBtnText}>Call</Text>
+      </Pressable>
+    )}
   </Pressable>
 );
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#100a02',
+    backgroundColor: colors.background,
   },
-  header: {
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 4,
   },
-  headerTitle: {
-    color: '#a08050',
+  topBarTitle: {
+    color: colors.primary,
+    fontFamily: fonts.label,
     fontSize: 13,
-    fontWeight: '700',
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
+  refreshIconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refreshIconBtnDisabled: {
+    opacity: 0.35,
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 14,
+  },
+  headerTitle: {
+    color: colors.headline,
+    fontFamily: fonts.headline,
+    fontSize: 28,
+  },
+  headerSubtitle: {
+    color: colors.body,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    marginTop: 4,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 20,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+    height: 46,
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.headline,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    height: '100%',
+  },
+  chipRowOuter: {
+    flexGrow: 0,
+    height: 48,
+    marginBottom: 8,
+  },
   chipRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 8,
     paddingHorizontal: 20,
-    paddingVertical: 12,
   },
   chip: {
+    height: 32,
+    justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#c8960c55',
+    borderColor: colors.border,
     borderRadius: 16,
     paddingHorizontal: 14,
-    paddingVertical: 7,
   },
   chipActive: {
-    backgroundColor: '#c8960c22',
-    borderColor: '#c8960c',
+    borderColor: colors.primary,
   },
   chipText: {
-    color: '#a08050',
-    fontSize: 13,
-    fontWeight: '600',
+    color: colors.muted,
+    fontFamily: fonts.labelBold,
+    fontSize: 12,
+    lineHeight: 14,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   chipTextActive: {
-    color: '#c8960c',
+    color: colors.primary,
   },
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#1c1005',
-    borderRadius: 10,
-    padding: 14,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
-    borderColor: '#c8960c33',
+    borderColor: colors.border,
     marginBottom: 10,
+  },
+  rowTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
   },
   rowMain: {
     flex: 1,
     marginRight: 12,
   },
+  rowNameLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
   rowName: {
-    color: '#f0dca4',
+    color: colors.headline,
+    fontFamily: fonts.headline,
     fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 2,
+    flexShrink: 1,
   },
   rowVicinity: {
-    color: '#a08050',
+    color: colors.body,
+    fontFamily: fonts.body,
     fontSize: 12,
-    fontStyle: 'italic',
-    marginBottom: 6,
   },
   badge: {
     alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: '#c8960c55',
+    borderColor: colors.tertiary,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 2,
   },
   badgeText: {
-    color: '#c8960c',
-    fontSize: 10,
-    fontWeight: '700',
+    color: colors.secondary,
+    fontFamily: fonts.labelBold,
+    fontSize: 9,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   rowDist: {
-    color: '#c8960c',
-    fontSize: 14,
-    fontWeight: '700',
+    color: colors.primary,
+    fontFamily: fonts.headlineSemi,
+    fontSize: 15,
+  },
+  callBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginTop: 12,
+  },
+  callBtnText: {
+    color: colors.body,
+    fontFamily: fonts.labelBold,
+    fontSize: 11,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   errorBox: {
     marginHorizontal: 20,
-    backgroundColor: '#2a1000',
+    backgroundColor: colors.dangerBg,
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#6b2000',
+    borderColor: colors.dangerBorder,
   },
   errorText: {
-    color: '#e07040',
+    color: colors.danger,
+    fontFamily: fonts.body,
     textAlign: 'center',
     fontSize: 13,
   },
   emptyText: {
-    color: '#a08050',
+    color: colors.muted,
+    fontFamily: fonts.body,
     textAlign: 'center',
     marginTop: 40,
     fontStyle: 'italic',
