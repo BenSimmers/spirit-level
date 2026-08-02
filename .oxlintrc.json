@@ -1,0 +1,51 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "oxc", "unicorn"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error"
+  },
+  "env": {
+    "builtin": true
+  },
+  "globals": {
+    "__DEV__": "readonly",
+    "fetch": "readonly",
+    "setTimeout": "readonly",
+    "clearTimeout": "readonly",
+    "setInterval": "readonly",
+    "clearInterval": "readonly",
+    "console": "readonly",
+    "process": "readonly"
+  },
+  "ignorePatterns": ["node_modules/**", ".expo/**", "dist/**", "android/**", "ios/**"],
+  "rules": {
+    "no-console": "error",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "typescript/no-explicit-any": "warn",
+    "react/react-in-jsx-scope": "off",
+    // expo-status-bar's `style` prop takes "light" | "dark" | "auto", not a style object.
+    "react/style-prop-object": ["error", { "allow": ["StatusBar"] }],
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "jsPlugins": ["eslint-plugin-react-native"],
+      "rules": {
+        "react-native/no-unused-styles": "error",
+        "react-native/no-inline-styles": "warn",
+        "react-native/no-color-literals": "off"
+      }
+    },
+    {
+      "files": ["*.config.js"],
+      "globals": {
+        "module": "writable",
+        "require": "readonly",
+        "process": "readonly"
+      }
+    }
+  ]
+}

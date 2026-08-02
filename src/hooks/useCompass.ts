@@ -1,11 +1,11 @@
-import * as Location from 'expo-location';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated } from 'react-native';
-import { compassLogger as log } from '../logger';
-import { NETWORK_ERROR, errorMessage, isAbort } from '../utils/errors';
-import { calculateBearing, haversineDistance } from '../utils/geo';
-import { requestLocationAccess } from '../utils/location';
-import type { LiquorStore, StoreProvider, UserLocation } from '../types';
+import * as Location from "expo-location";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Animated } from "react-native";
+import { compassLogger as log } from "../logger";
+import { NETWORK_ERROR, errorMessage, isAbort } from "../utils/errors";
+import { calculateBearing, haversineDistance } from "../utils/geo";
+import { requestLocationAccess } from "../utils/location";
+import type { LiquorStore, StoreProvider, UserLocation } from "../types";
 
 const REFETCH_THRESHOLD_M = 1000;
 
@@ -16,10 +16,7 @@ const HEADING_EPSILON_DEG = 0.5;
 const shortestDelta = (from: number, to: number): number => ((to - from + 540) % 360) - 180;
 
 const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T | null> =>
-  Promise.race([
-    promise,
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
-  ]);
+  Promise.race([promise, new Promise<null>((resolve) => setTimeout(() => resolve(null), ms))]);
 
 export const useCompass = (storeProvider: StoreProvider) => {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
@@ -54,32 +51,35 @@ export const useCompass = (storeProvider: StoreProvider) => {
     }).start();
   }, [needleAngle]);
 
-  const loadStore = useCallback(async (lat: number, lng: number, skipCache = false) => {
-    const prev = lastFetchedLocation.current;
-    if (!skipCache && prev) {
-      const moved = haversineDistance(prev.lat, prev.lng, lat, lng);
-      if (moved < REFETCH_THRESHOLD_M) {
-        log.debug(`skipping fetch — only moved ${moved.toFixed(0)}m`);
-        return;
+  const loadStore = useCallback(
+    async (lat: number, lng: number, skipCache = false) => {
+      const prev = lastFetchedLocation.current;
+      if (!skipCache && prev) {
+        const moved = haversineDistance(prev.lat, prev.lng, lat, lng);
+        if (moved < REFETCH_THRESHOLD_M) {
+          log.debug(`skipping fetch — only moved ${moved.toFixed(0)}m`);
+          return;
+        }
       }
-    }
-    lastFetchedLocation.current = { lat, lng };
+      lastFetchedLocation.current = { lat, lng };
 
-    // Cancel any previous in-flight request
-    abortController.current?.abort();
-    abortController.current = new AbortController();
+      // Cancel any previous in-flight request
+      abortController.current?.abort();
+      abortController.current = new AbortController();
 
-    setLoading(true);
-    setError(null);
-    try {
-      setStore(await storeProvider(lat, lng, abortController.current.signal, skipCache));
-    } catch (e) {
-      if (isAbort(e)) return;
-      setError(errorMessage(e, NETWORK_ERROR));
-    } finally {
-      setLoading(false);
-    }
-  }, [storeProvider]);
+      setLoading(true);
+      setError(null);
+      try {
+        setStore(await storeProvider(lat, lng, abortController.current.signal, skipCache));
+      } catch (e) {
+        if (isAbort(e)) return;
+        setError(errorMessage(e, NETWORK_ERROR));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [storeProvider],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -94,7 +94,7 @@ export const useCompass = (storeProvider: StoreProvider) => {
 
         // Start the compass before waiting on a GPS fix
         headingSub.current = await Location.watchHeadingAsync((h) => {
-          const next = h.magHeading >= 0 ? h.magHeading : h.trueHeading ?? 0;
+          const next = h.magHeading >= 0 ? h.magHeading : (h.trueHeading ?? 0);
           if (Math.abs(shortestDelta(headingRef.current, next)) < HEADING_EPSILON_DEG) return;
           headingRef.current = next;
           animateNeedle();
@@ -117,7 +117,7 @@ export const useCompass = (storeProvider: StoreProvider) => {
         if (fastLoc) {
           setUserLocation({ lat: fastLoc.coords.latitude, lng: fastLoc.coords.longitude });
         } else if (!lastKnown) {
-          setError('Couldn’t get a GPS fix. Make sure location is enabled and try again.');
+          setError("Couldn’t get a GPS fix. Make sure location is enabled and try again.");
           return;
         }
 
@@ -132,7 +132,7 @@ export const useCompass = (storeProvider: StoreProvider) => {
         }
       } catch (e) {
         if (cancelled) return;
-        setError(errorMessage(e, 'Failed to get location.'));
+        setError(errorMessage(e, "Failed to get location."));
       }
     })();
 

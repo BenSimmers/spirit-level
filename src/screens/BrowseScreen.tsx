@@ -1,25 +1,34 @@
-import React, { useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { ErrorBanner, RefreshButton } from '../components/common';
-import { callStore } from '../components/StoreCard';
-import { StoreMapModal } from '../components/StoreMapModal';
-import { useNearbyPlaces } from '../hooks/useNearbyPlaces';
-import { CATEGORY_LABELS, PLACE_CATEGORIES } from '../types';
-import type { NearbyPlace, PlaceCategory } from '../types';
-import { colors, fonts } from '../theme';
-import { formatDistance } from '../utils/geo';
+import React, { useMemo, useState } from "react";
+import {
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { ErrorBanner, RefreshButton } from "../components/common";
+import { callStore } from "../components/StoreCard";
+import { StoreMapModal } from "../components/StoreMapModal";
+import { useNearbyPlaces } from "../hooks/useNearbyPlaces";
+import { CATEGORY_LABELS, PLACE_CATEGORIES } from "../types";
+import type { NearbyPlace, PlaceCategory } from "../types";
+import { colors, fonts } from "../theme";
+import { formatDistance } from "../utils/geo";
 
-type Filter = PlaceCategory | 'all';
+type Filter = PlaceCategory | "all";
 
-const FILTERS: Filter[] = ['all', ...PLACE_CATEGORIES];
+const FILTERS: Filter[] = ["all", ...PLACE_CATEGORIES];
 
-const filterLabel = (f: Filter): string => (f === 'all' ? 'All' : CATEGORY_LABELS[f]);
+const filterLabel = (f: Filter): string => (f === "all" ? "All" : CATEGORY_LABELS[f]);
 
 export const BrowseScreen: React.FC = () => {
-  const [filter, setFilter] = useState<Filter>('all');
-  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<Filter>("all");
+  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<NearbyPlace | null>(null);
   const [mapVisible, setMapVisible] = useState(false);
   const { places, userLocation, error, loading, refresh } = useNearbyPlaces();
@@ -30,7 +39,7 @@ export const BrowseScreen: React.FC = () => {
   };
 
   const visiblePlaces = useMemo(() => {
-    const byCategory = filter === 'all' ? places : places.filter((p) => p.category === filter);
+    const byCategory = filter === "all" ? places : places.filter((p) => p.category === filter);
     const query = search.trim().toLowerCase();
     if (!query) return byCategory;
     return byCategory.filter(
@@ -39,7 +48,7 @@ export const BrowseScreen: React.FC = () => {
   }, [places, filter, search]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <View style={styles.topBar}>
         <Text style={styles.topBarTitle}>Compass</Text>
         <RefreshButton onPress={refresh} disabled={loading} />
@@ -74,7 +83,10 @@ export const BrowseScreen: React.FC = () => {
             onPress={() => setFilter(f)}
             style={[styles.chip, filter === f && styles.chipActive]}
           >
-            <Text style={[styles.chipText, filter === f && styles.chipTextActive]} numberOfLines={1}>
+            <Text
+              style={[styles.chipText, filter === f && styles.chipTextActive]}
+              numberOfLines={1}
+            >
               {filterLabel(f)}
             </Text>
           </Pressable>
@@ -88,12 +100,12 @@ export const BrowseScreen: React.FC = () => {
           data={visiblePlaces}
           keyExtractor={(item, i) => `${item.name}-${item.lat}-${item.lng}-${i}`}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />}
+          refreshControl={
+            <RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />
+          }
           renderItem={({ item }) => <PlaceRow place={item} onPress={() => openMap(item)} />}
           ListEmptyComponent={
-            !loading ? (
-              <Text style={styles.emptyText}>No places found nearby.</Text>
-            ) : null
+            !loading ? <Text style={styles.emptyText}>No places found nearby.</Text> : null
           }
         />
       )}
@@ -118,14 +130,20 @@ const PlaceRow: React.FC<{ place: NearbyPlace; onPress: () => void }> = ({ place
       <View style={styles.rowTop}>
         <View style={styles.rowMain}>
           <View style={styles.rowNameLine}>
-            <Text style={styles.rowName} numberOfLines={1}>{place.name}</Text>
-            {place.category !== 'other' && (
+            <Text style={styles.rowName} numberOfLines={1}>
+              {place.name}
+            </Text>
+            {place.category !== "other" && (
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{CATEGORY_LABELS[place.category]}</Text>
               </View>
             )}
           </View>
-          {place.vicinity ? <Text style={styles.rowVicinity} numberOfLines={1}>{place.vicinity}</Text> : null}
+          {place.vicinity ? (
+            <Text style={styles.rowVicinity} numberOfLines={1}>
+              {place.vicinity}
+            </Text>
+          ) : null}
         </View>
         <Text style={styles.rowDist}>{formatDistance(place.distance)}</Text>
       </View>
@@ -145,9 +163,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 12,
   },
@@ -156,7 +174,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.label,
     fontSize: 13,
     letterSpacing: 2,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   header: {
     paddingHorizontal: 20,
@@ -175,8 +193,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     marginHorizontal: 20,
     backgroundColor: colors.surface,
@@ -192,7 +210,7 @@ const styles = StyleSheet.create({
     color: colors.headline,
     fontFamily: fonts.body,
     fontSize: 14,
-    height: '100%',
+    height: "100%",
   },
   chipRowOuter: {
     flexGrow: 0,
@@ -200,14 +218,14 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   chipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     paddingHorizontal: 20,
   },
   chip: {
     height: 32,
-    justifyContent: 'center',
+    justifyContent: "center",
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 16,
@@ -222,7 +240,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 14,
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   chipTextActive: {
     color: colors.primary,
@@ -240,17 +258,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   rowTop: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
   },
   rowMain: {
     flex: 1,
     marginRight: 12,
   },
   rowNameLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     marginBottom: 4,
   },
@@ -266,7 +284,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   badge: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     borderWidth: 1,
     borderColor: colors.tertiary,
     borderRadius: 8,
@@ -277,7 +295,7 @@ const styles = StyleSheet.create({
     color: colors.secondary,
     fontFamily: fonts.labelBold,
     fontSize: 9,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   rowDist: {
@@ -286,10 +304,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   callBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     marginTop: 12,
   },
   callBtnText: {
@@ -297,7 +315,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.labelBold,
     fontSize: 11,
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
   errorBanner: {
     marginHorizontal: 20,
@@ -305,8 +323,8 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.muted,
     fontFamily: fonts.body,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 40,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
 });

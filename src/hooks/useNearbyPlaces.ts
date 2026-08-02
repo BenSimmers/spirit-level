@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import * as Location from 'expo-location';
-import { fetchNearbyPlaces } from '../api/googlePlaces';
-import { browseLogger as log } from '../logger';
-import { NETWORK_ERROR, errorMessage, isAbort } from '../utils/errors';
-import { requestLocationAccess } from '../utils/location';
-import type { NearbyPlace, UserLocation } from '../types';
+import { useCallback, useEffect, useRef, useState } from "react";
+import * as Location from "expo-location";
+import { fetchNearbyPlaces } from "../api/googlePlaces";
+import { browseLogger as log } from "../logger";
+import { NETWORK_ERROR, errorMessage, isAbort } from "../utils/errors";
+import { requestLocationAccess } from "../utils/location";
+import type { NearbyPlace, UserLocation } from "../types";
 
 export const useNearbyPlaces = () => {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
@@ -40,13 +40,15 @@ export const useNearbyPlaces = () => {
           return;
         }
 
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
         if (cancelled) return;
         setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
       } catch (e) {
         if (cancelled) return;
-        log.warn('location failed', e);
-        setError(errorMessage(e, 'Failed to get location.'));
+        log.warn("location failed", e);
+        setError(errorMessage(e, "Failed to get location."));
       }
     })();
 

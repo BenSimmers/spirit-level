@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
-import React from 'react';
-import type { LiquorStore, UserLocation } from '../types';
-import { colors, fonts } from '../theme';
-import { bearingToCardinal, calculateBearing, formatDistance } from '../utils/geo';
+import { useEffect, useMemo, useRef } from "react";
+import { Animated, Dimensions, StyleSheet, Text, View } from "react-native";
+import React from "react";
+import type { LiquorStore, UserLocation } from "../types";
+import { colors, fonts } from "../theme";
+import { bearingToCardinal, calculateBearing, formatDistance } from "../utils/geo";
 
 interface Props {
   needleAngle: Animated.Value;
@@ -12,7 +12,7 @@ interface Props {
   loading?: boolean;
 }
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 export const COMPASS_SIZE = Math.min(width * 0.68, 250);
 const NEEDLE_LENGTH = COMPASS_SIZE * 0.33;
 
@@ -21,13 +21,10 @@ const TICK_STYLES = Array.from({ length: 72 }, (_, i) => {
   const isCardinal = deg % 90 === 0;
   const isIntercardinal = deg % 45 === 0;
   return {
-    transform: [
-      { rotate: `${deg}deg` },
-      { translateY: -(COMPASS_SIZE / 2 - 14) },
-    ],
+    transform: [{ rotate: `${deg}deg` }, { translateY: -(COMPASS_SIZE / 2 - 14) }],
     height: isCardinal ? 14 : isIntercardinal ? 9 : 5,
     width: isCardinal ? 2 : 1,
-    backgroundColor: isCardinal ? colors.secondary : 'rgba(255,255,255,0.18)',
+    backgroundColor: isCardinal ? colors.secondary : "rgba(255,255,255,0.18)",
   } as const;
 });
 
@@ -44,7 +41,7 @@ const CompassInner: React.FC<Props> = ({ needleAngle, store, userLocation, loadi
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 0.25, duration: 700, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-      ])
+      ]),
     );
     anim.start();
     return () => anim.stop();
@@ -52,8 +49,8 @@ const CompassInner: React.FC<Props> = ({ needleAngle, store, userLocation, loadi
 
   const rotate = needleAngle.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '1deg'],
-    extrapolate: 'extend',
+    outputRange: ["0deg", "1deg"],
+    extrapolate: "extend",
   });
 
   // Absolute (not heading-relative) direction, so the label doesn't flicker as the phone turns
@@ -66,10 +63,7 @@ const CompassInner: React.FC<Props> = ({ needleAngle, store, userLocation, loadi
   return (
     <View style={styles.wrap}>
       {loading && (
-        <Animated.View
-          style={[styles.loadingRing, { opacity: pulseAnim }]}
-          pointerEvents="none"
-        />
+        <Animated.View style={[styles.loadingRing, { opacity: pulseAnim }]} pointerEvents="none" />
       )}
       <View style={styles.compassFace}>
         {TICK_STYLES.map((tickStyle, i) => (
@@ -100,12 +94,12 @@ const styles = StyleSheet.create({
   wrap: {
     width: COMPASS_SIZE + 16,
     height: COMPASS_SIZE + 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginVertical: 20,
   },
   loadingRing: {
-    position: 'absolute',
+    position: "absolute",
     width: COMPASS_SIZE + 16,
     height: COMPASS_SIZE + 16,
     borderRadius: (COMPASS_SIZE + 16) / 2,
@@ -117,20 +111,20 @@ const styles = StyleSheet.create({
     height: COMPASS_SIZE,
     borderRadius: COMPASS_SIZE / 2,
     backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 2,
     borderColor: colors.secondary,
   },
   tick: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
+    position: "absolute",
+    top: "50%",
+    left: "50%",
     marginLeft: -1,
-    transformOrigin: 'top',
+    transformOrigin: "top",
   },
   cardinal: {
-    position: 'absolute',
+    position: "absolute",
     fontFamily: fonts.headlineSemi,
     fontSize: 18,
     color: colors.primary,
@@ -143,21 +137,21 @@ const styles = StyleSheet.create({
   cardinalE: { right: 30 },
   cardinalW: { left: 30 },
   needle: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
+    position: "absolute",
+    top: "50%",
+    left: "50%",
     width: 2.5,
     height: NEEDLE_LENGTH,
     marginLeft: -1.25,
     marginTop: -NEEDLE_LENGTH,
     backgroundColor: colors.primary,
     borderRadius: 1.5,
-    transformOrigin: 'bottom',
+    transformOrigin: "bottom",
   },
   pivot: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
+    position: "absolute",
+    top: "50%",
+    left: "50%",
     width: 16,
     height: 16,
     marginTop: -8,
@@ -168,9 +162,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   labelPill: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 50,
-    backgroundColor: colors.surfaceAlt + 'ee',
+    backgroundColor: colors.surfaceAlt + "ee",
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,

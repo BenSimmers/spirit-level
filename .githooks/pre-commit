@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# Formats and lints staged sources, then typechecks the project.
+# Bypass with `git commit --no-verify` or `SKIP_HOOKS=1 git commit`.
+set -e
+
+[ "$SKIP_HOOKS" = "1" ] && exit 0
+
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+RESET='\033[0m'
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.json')
+
+if [ -z "$STAGED" ]; then
+  exit 0
+fi
+
+FIXABLE=""
+for f in $STAGED; do
+  if git diff --quiet -- "$f"; then
+    FIXABLE="$FIXABLE $f"
+  else
+    printf "${YELLOW}Partially staged, not auto-fixing: %s${RESET}\n" "$f"
+  fi
+done
+
+if [ -n "$FIXABLE" ]; then
+  printf "${CYAN}Formatting staged files…${RESET}\n"
+  npx oxfmt $FIXABLE
+  npx oxlint --fix $FIXABLE >/dev/null 2>&1 || true
+  git add $FIXABLE
+fi
+
+printf "${CYAN}Linting…${RESET}\n"
+npx oxlint --max-warnings 0 $STAGED
+
+printf "${CYAN}Checking formatting…${RESET}\n"
+npx oxfmt --check $STAGED
+
+printf "${CYAN}Typechecking…${RESET}\n"
+npx tsc --noEmit
+
+printf "${GREEN}Pre-commit checks passed.${RESET}\n"
