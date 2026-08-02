@@ -21,17 +21,21 @@ export type LiquorStore = {
     openNow?: boolean;
 }
 
-export type PlaceCategory = 'liquor_store' | 'bar' | 'pub' | 'sports_bar' | 'brewery' | 'wine_bar';
-export const PLACE_CATEGORIES: PlaceCategory[] = ['liquor_store', 'bar', 'pub', 'sports_bar', 'brewery', 'wine_bar'];
-
-export const CATEGORY_LABELS: Record<PlaceCategory, string> = {
+export const CATEGORY_LABELS = {
     liquor_store: 'Liquor Store',
     bar: 'Bar',
     pub: 'Pub',
     sports_bar: 'Sports Bar',
     brewery: 'Brewery',
     wine_bar: 'Wine Bar',
-};
+} as const;
+
+export type PlaceCategory = keyof typeof CATEGORY_LABELS;
+
+export const PLACE_CATEGORIES = Object.keys(CATEGORY_LABELS) as PlaceCategory[];
+
+export const isPlaceCategory = (type: string | undefined): type is PlaceCategory =>
+    type != null && type in CATEGORY_LABELS;
 
 export type NearbyPlace = LiquorStore & {
     // 'other' covers results whose primaryType falls outside PLACE_CATEGORIES

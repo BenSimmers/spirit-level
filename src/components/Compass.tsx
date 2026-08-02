@@ -6,7 +6,7 @@ import { colors, fonts } from '../theme';
 import { bearingToCardinal, calculateBearing, formatDistance } from '../utils/geo';
 
 interface Props {
-  heading: number;
+  needleAngle: Animated.Value;
   store: LiquorStore | null;
   userLocation: UserLocation | null;
   loading?: boolean;
@@ -31,9 +31,7 @@ const TICK_STYLES = Array.from({ length: 72 }, (_, i) => {
   } as const;
 });
 
-export const Compass: React.FC<Props> = ({ heading, store, userLocation, loading = false }) => {
-  const needleAnim = useRef(new Animated.Value(0)).current;
-  const lastAngleRef = useRef(0);
+const CompassInner: React.FC<Props> = ({ needleAngle, store, userLocation, loading = false }) => {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Pulse the ring while loading
@@ -52,23 +50,7 @@ export const Compass: React.FC<Props> = ({ heading, store, userLocation, loading
     return () => anim.stop();
   }, [loading, pulseAnim]);
 
-  useEffect(() => {
-    if (!store || !userLocation) return;
-    const bearing = calculateBearing(userLocation.lat, userLocation.lng, store.lat, store.lng);
-    const raw = bearing - heading;
-    const prev = lastAngleRef.current;
-    const delta = ((raw - prev + 540) % 360) - 180;
-    const next = prev + delta;
-    lastAngleRef.current = next;
-    Animated.spring(needleAnim, {
-      toValue: next,
-      useNativeDriver: true,
-      tension: 40,
-      friction: 8,
-    }).start();
-  }, [heading, needleAnim, store, userLocation]);
-
-  const rotate = needleAnim.interpolate({
+  const rotate = needleAngle.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '1deg'],
     extrapolate: 'extend',
@@ -112,6 +94,8 @@ export const Compass: React.FC<Props> = ({ heading, store, userLocation, loading
   );
 };
 
+export const Compass = React.memo(CompassInner);
+
 const styles = StyleSheet.create({
   wrap: {
     width: COMPASS_SIZE + 16,
@@ -154,10 +138,10 @@ const styles = StyleSheet.create({
   cardinalMuted: {
     color: colors.muted,
   },
-  cardinalN: { top: 22 },
-  cardinalS: { bottom: 22 },
-  cardinalE: { right: 18 },
-  cardinalW: { left: 18 },
+  cardinalN: { top: 30 },
+  cardinalS: { bottom: 30 },
+  cardinalE: { right: 30 },
+  cardinalW: { left: 30 },
   needle: {
     position: 'absolute',
     top: '50%',

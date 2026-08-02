@@ -1,7 +1,9 @@
-import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import * as Location from 'expo-location';
 import { fetchNearbyPlaces } from '../api/googlePlaces';
 import { browseLogger as log } from '../logger';
+import { NETWORK_ERROR, errorMessage, isAbort } from '../utils/errors';
+import { requestLocationAccess } from '../utils/location';
 import type { NearbyPlace, UserLocation } from '../types';
 
 export const useNearbyPlaces = () => {
@@ -20,8 +22,8 @@ export const useNearbyPlaces = () => {
     try {
       setPlaces(await fetchNearbyPlaces(lat, lng, abortController.current.signal));
     } catch (e) {
-      if (e instanceof Error && e.name === 'AbortError') return;
-      setError(e instanceof Error ? e.message : 'Network error. Check your connection and try again.');
+      if (isAbort(e)) return;
+      setError(errorMessage(e, NETWORK_ERROR));
     } finally {
       setLoading(false);
     }
@@ -31,16 +33,10 @@ export const useNearbyPlaces = () => {
     let cancelled = false;
     (async () => {
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        const access = await requestLocationAccess();
         if (cancelled) return;
-        if (status !== 'granted') {
-          setError('Location permission denied. Please enable it in Settings.');
-          return;
-        }
-
-        if (!(await Location.hasServicesEnabledAsync())) {
-          if (cancelled) return;
-          setError('Location services are turned off. Please enable them in Settings.');
+        if (!access.ok) {
+          setError(access.error);
           return;
         }
 
@@ -50,7 +46,7 @@ export const useNearbyPlaces = () => {
       } catch (e) {
         if (cancelled) return;
         log.warn('location failed', e);
-        setError(e instanceof Error ? e.message : 'Failed to get location.');
+        setError(errorMessage(e, 'Failed to get location.'));
       }
     })();
 
@@ -68,5 +64,5 @@ export const useNearbyPlaces = () => {
     if (userLocation) loadPlaces(userLocation.lat, userLocation.lng);
   }, [userLocation, loadPlaces]);
 
-  return { places, error, loading, refresh };
+  return { places, userLocation, error, loading, refresh };
 };

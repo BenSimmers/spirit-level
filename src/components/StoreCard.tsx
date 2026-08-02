@@ -5,29 +5,28 @@ import { colors, fonts } from '../theme';
 import { formatDistance } from '../utils/geo';
 import React from 'react';
 
-// interface Props
 type Props = {
     store: LiquorStore;
     dimmed?: boolean;
 }
 
-export const openInMaps = async (store: LiquorStore): Promise<void> => {
-    // Parentheses break the geo: label delimiters and survive encodeURIComponent
-    const label = encodeURIComponent(store.name.replace(/[()]/g, ''));
-    const coords = `${store.lat},${store.lng}`;
-    const urls = Platform.OS === 'ios'
-        ? [`maps:0,0?q=${label}@${coords}`]
-        : [`geo:${coords}?q=${coords}(${label})`];
-    // Web fallback for devices with no native maps app (e.g. bare emulators)
-    urls.push(`https://www.google.com/maps/search/?api=1&query=${coords}`);
 
-    for (const url of urls) {
-        try {
-            await Linking.openURL(url);
-            return;
-        } catch {
-            // try the next candidate
-        }
+/**
+ * Opens the given store in the device's default maps app, or Google Maps in a browser if no maps app is available. If the device cannot open any of these, an alert is shown.
+ * @param store The store to open in maps. 
+ */
+const urls = {
+    ios: (store: LiquorStore) => `maps:0,0?q=${encodeURIComponent(store.name.replace(/[()]/g, ''))}@${store.lat},${store.lng}`,
+    android: (store: LiquorStore) => `geo:${store.lat},${store.lng}?q=${store.lat},${store.lng}(${encodeURIComponent(store.name.replace(/[()]/g, ''))})`,
+    web: (store: LiquorStore) => `https://www.google.com/maps/search/?api=1&query=${store.lat},${store.lng}`,
+};
+
+export const openInMaps = async (store: LiquorStore): Promise<void> => {
+    const url = urls[Platform.OS as keyof typeof urls](store);
+    try {
+        await Linking.openURL(url);
+    } catch {
+        Alert.alert('No maps app found', 'Install Google Maps to get directions.');
     }
     Alert.alert('No maps app found', 'Install Google Maps to get directions.');
 };
@@ -36,7 +35,7 @@ export const callStore = async (phone: string): Promise<void> => {
     try {
         await Linking.openURL(`tel:${phone}`);
     } catch {
-        Alert.alert('Unable to place call', 'Your device can\'t make phone calls.');
+        Alert.alert('Unable to place call');
     }
 };
 
@@ -93,7 +92,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        backgroundColor: 'transparent',
         borderWidth: 1,
         borderColor: colors.primary,
         borderRadius: 8,

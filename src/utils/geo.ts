@@ -4,7 +4,7 @@ export const calculateBearing = (
     lat1: number, lon1: number,
     lat2: number, lon2: number,
 ): number => {
-    const dLon = toRad(lon2 - lon1) 
+    const dLon = toRad(lon2 - lon1)
     const lat1Rad = toRad(lat1);
     const lat2Rad = toRad(lat2);
     const bearingX = Math.sin(dLon) * Math.cos(lat2Rad);
@@ -25,7 +25,8 @@ export const haversineDistance = (
     return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-export const formatDistance = (metres: number): string => metres < 1000 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(1)} km`;
+export const formatDistance = (metres: number): string => 
+    metres < 1000 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(1)} km`;
 
 const CARDINALS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 

@@ -2,7 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { callStore, openInMaps } from '../components/StoreCard';
+import { ErrorBanner, RefreshButton } from '../components/common';
+import { callStore } from '../components/StoreCard';
+import { StoreMapModal } from '../components/StoreMapModal';
 import { useNearbyPlaces } from '../hooks/useNearbyPlaces';
 import { CATEGORY_LABELS, PLACE_CATEGORIES } from '../types';
 import type { NearbyPlace, PlaceCategory } from '../types';
@@ -18,7 +20,14 @@ const filterLabel = (f: Filter): string => (f === 'all' ? 'All' : CATEGORY_LABEL
 export const BrowseScreen: React.FC = () => {
   const [filter, setFilter] = useState<Filter>('all');
   const [search, setSearch] = useState('');
-  const { places, error, loading, refresh } = useNearbyPlaces();
+  const [selected, setSelected] = useState<NearbyPlace | null>(null);
+  const [mapVisible, setMapVisible] = useState(false);
+  const { places, userLocation, error, loading, refresh } = useNearbyPlaces();
+
+  const openMap = (place: NearbyPlace) => {
+    setSelected(place);
+    setMapVisible(true);
+  };
 
   const visiblePlaces = useMemo(() => {
     const byCategory = filter === 'all' ? places : places.filter((p) => p.category === filter);
@@ -33,13 +42,7 @@ export const BrowseScreen: React.FC = () => {
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.topBar}>
         <Text style={styles.topBarTitle}>Compass</Text>
-        <Pressable
-          style={[styles.refreshIconBtn, loading && styles.refreshIconBtnDisabled]}
-          onPress={refresh}
-          disabled={loading}
-        >
-          <Ionicons name="refresh" size={16} color={colors.primary} />
-        </Pressable>
+        <RefreshButton onPress={refresh} disabled={loading} />
       </View>
 
       <View style={styles.header}>
@@ -79,16 +82,14 @@ export const BrowseScreen: React.FC = () => {
       </ScrollView>
 
       {error ? (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
+        <ErrorBanner message={error} style={styles.errorBanner} />
       ) : (
         <FlatList
           data={visiblePlaces}
           keyExtractor={(item, i) => `${item.name}-${item.lat}-${item.lng}-${i}`}
           contentContainerStyle={styles.listContent}
           refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />}
-          renderItem={({ item }) => <PlaceRow place={item} />}
+          renderItem={({ item }) => <PlaceRow place={item} onPress={() => openMap(item)} />}
           ListEmptyComponent={
             !loading ? (
               <Text style={styles.emptyText}>No places found nearby.</Text>
@@ -96,34 +97,47 @@ export const BrowseScreen: React.FC = () => {
           }
         />
       )}
+
+      {/* `selected` outlives `mapVisible` so the sheet doesn't blank out
+          mid-way through the dismiss animation. */}
+      <StoreMapModal
+        store={selected}
+        userLocation={userLocation}
+        visible={mapVisible}
+        onClose={() => setMapVisible(false)}
+      />
     </SafeAreaView>
   );
 };
 
-const PlaceRow: React.FC<{ place: NearbyPlace }> = ({ place }) => (
-  <Pressable style={styles.row} onPress={() => openInMaps(place)}>
-    <View style={styles.rowTop}>
-      <View style={styles.rowMain}>
-        <View style={styles.rowNameLine}>
-          <Text style={styles.rowName} numberOfLines={1}>{place.name}</Text>
-          {place.category !== 'other' && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{CATEGORY_LABELS[place.category]}</Text>
-            </View>
-          )}
+const PlaceRow: React.FC<{ place: NearbyPlace; onPress: () => void }> = ({ place, onPress }) => {
+  const { phone } = place;
+
+  return (
+    <Pressable style={styles.row} onPress={onPress}>
+      <View style={styles.rowTop}>
+        <View style={styles.rowMain}>
+          <View style={styles.rowNameLine}>
+            <Text style={styles.rowName} numberOfLines={1}>{place.name}</Text>
+            {place.category !== 'other' && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{CATEGORY_LABELS[place.category]}</Text>
+              </View>
+            )}
+          </View>
+          {place.vicinity ? <Text style={styles.rowVicinity} numberOfLines={1}>{place.vicinity}</Text> : null}
         </View>
-        {place.vicinity ? <Text style={styles.rowVicinity} numberOfLines={1}>{place.vicinity}</Text> : null}
+        <Text style={styles.rowDist}>{formatDistance(place.distance)}</Text>
       </View>
-      <Text style={styles.rowDist}>{formatDistance(place.distance)}</Text>
-    </View>
-    {place.phone && (
-      <Pressable style={styles.callBtn} onPress={() => callStore(place.phone!)}>
-        <Ionicons name="call-outline" size={13} color={colors.body} />
-        <Text style={styles.callBtnText}>Call</Text>
-      </Pressable>
-    )}
-  </Pressable>
-);
+      {phone && (
+        <Pressable style={styles.callBtn} onPress={() => callStore(phone)}>
+          <Ionicons name="call-outline" size={13} color={colors.body} />
+          <Text style={styles.callBtnText}>Call</Text>
+        </Pressable>
+      )}
+    </Pressable>
+  );
+};
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -143,18 +157,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     letterSpacing: 2,
     textTransform: 'uppercase',
-  },
-  refreshIconBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  refreshIconBtnDisabled: {
-    opacity: 0.35,
   },
   header: {
     paddingHorizontal: 20,
@@ -297,19 +299,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-  errorBox: {
+  errorBanner: {
     marginHorizontal: 20,
-    backgroundColor: colors.dangerBg,
-    borderRadius: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.dangerBorder,
-  },
-  errorText: {
-    color: colors.danger,
-    fontFamily: fonts.body,
-    textAlign: 'center',
-    fontSize: 13,
   },
   emptyText: {
     color: colors.muted,

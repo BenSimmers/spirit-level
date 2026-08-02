@@ -1,25 +1,23 @@
-import React from "react";
+import { useEffect, useState } from 'react';
 
+const INTERVAL_MS = 2500;
 
 const LOADING_MESSAGES = [
     'Locating nearby stores…',
     'Searching the area…',
-    'Checking OpenStreetMap data…',
     'Finding the closest option…',
     'Almost ready…',
 ];
 
+export const useRotatingMessage = (active: boolean): string => {
+    const [index, setIndex] = useState<number>(0);
 
-export const useRotatingMessage = (active: boolean, intervalMs = 2500): string => {
-    const [index, setIndex] = React.useState(0);
-    React.useEffect(() => {
+    useEffect(() => {
         if (!active) return;
         setIndex(0);
-        const interval = setInterval(() => {
-            setIndex((i) => (i + 1) % LOADING_MESSAGES.length);
-        }, intervalMs);
+        const interval = setInterval(() => setIndex((i) => (i + 1) % LOADING_MESSAGES.length), INTERVAL_MS);
         return () => clearInterval(interval);
-    }, [active, intervalMs]);
+    }, [active]);
 
     return LOADING_MESSAGES[index];
-}
+};

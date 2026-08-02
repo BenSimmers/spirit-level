@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useCallback } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts } from '../theme';
 
@@ -10,10 +10,10 @@ type Props = {
 }
 
 export const AgeGate: React.FC<Props> = ({ onVerified }) => {
-    const confirm = useCallback(async () => {
+    const confirm = async () => {
         await AsyncStorage.setItem(AGE_VERIFIED_KEY, 'true');
         onVerified();
-    }, [onVerified]);
+    };
 
     return (
         <View style={styles.container}>
