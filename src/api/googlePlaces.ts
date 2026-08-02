@@ -208,5 +208,5 @@ export async function fetchNearbyPlaces(
         category: isPlaceCategory(p.primaryType) ? p.primaryType : "other",
       }),
     )
-    .toSorted((a, b) => a.distance - b.distance);
+    .sort((a, b) => a.distance - b.distance);
 }

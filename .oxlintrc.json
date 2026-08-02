@@ -27,7 +27,10 @@
     // expo-status-bar's `style` prop takes "light" | "dark" | "auto", not a style object.
     "react/style-prop-object": ["error", { "allow": ["StatusBar"] }],
     "react/rules-of-hooks": "error",
-    "react/exhaustive-deps": "warn"
+    "react/exhaustive-deps": "warn",
+    // Hermes (RN 0.81) has no Array.prototype.toSorted/toReversed/toSpliced/with,
+    // so this rule's suggested fix throws at runtime. Copy before sorting instead.
+    "unicorn/no-array-sort": "off"
   },
   "overrides": [
     {
