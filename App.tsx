@@ -1,13 +1,27 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { DarkTheme, NavigationContainer, type Theme } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AGE_VERIFIED_KEY, AgeGate } from './src/components/AgeGate';
-import { BrowseScreen } from './src/screens/BrowseScreen';
-import { CompassScreen } from './src/screens/CompassScreen';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DarkTheme, NavigationContainer, type Theme } from "@react-navigation/native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
+import {
+  useFonts as useHankenGrotesk,
+  HankenGrotesk_400Regular,
+  HankenGrotesk_500Medium,
+  HankenGrotesk_600SemiBold,
+  HankenGrotesk_700Bold,
+} from "@expo-google-fonts/hanken-grotesk";
+import {
+  useFonts as useSpaceGrotesk,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_700Bold,
+} from "@expo-google-fonts/space-grotesk";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AGE_VERIFIED_KEY, AgeGate } from "./src/components/AgeGate";
+import { BrowseScreen } from "./src/screens/BrowseScreen";
+import { CompassScreen } from "./src/screens/CompassScreen";
+import { colors, fonts } from "./src/theme";
 
 const Tab = createBottomTabNavigator();
 
@@ -15,22 +29,54 @@ const NAV_THEME: Theme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    background: '#100a02',
-    card: '#1c1005',
-    text: '#f0dca4',
-    border: '#c8960c33',
-    primary: '#c8960c',
+    background: colors.background,
+    card: colors.surface,
+    text: colors.headline,
+    border: colors.border,
+    primary: colors.primary,
   },
 };
 
+const DiamondTabIcon: React.FC<{ name: keyof typeof Ionicons.glyphMap; focused: boolean }> = ({
+  name,
+  focused,
+}) => (
+  <View style={styles.diamondSlot}>
+    <View style={[styles.diamondWrap, focused && styles.diamondWrapFocused]}>
+      <View style={styles.diamondIconCounter}>
+        <Ionicons name={name} size={16} color={focused ? colors.background : colors.muted} />
+      </View>
+    </View>
+  </View>
+);
+
+const renderCompassIcon = ({ focused }: { focused: boolean }) => (
+  <DiamondTabIcon name="compass" focused={focused} />
+);
+
+const renderBrowseIcon = ({ focused }: { focused: boolean }) => (
+  <DiamondTabIcon name="menu" focused={focused} />
+);
+
 export default function App() {
   const [ageVerified, setAgeVerified] = useState<boolean | null>(null);
+  const [hankenLoaded, hankenError] = useHankenGrotesk({
+    HankenGrotesk_400Regular,
+    HankenGrotesk_500Medium,
+    HankenGrotesk_600SemiBold,
+    HankenGrotesk_700Bold,
+  });
+  const [spaceLoaded, spaceError] = useSpaceGrotesk({
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_700Bold,
+  });
+  const fontsSettled = (hankenLoaded || !!hankenError) && (spaceLoaded || !!spaceError);
 
   useEffect(() => {
-    AsyncStorage.getItem(AGE_VERIFIED_KEY).then((v) => setAgeVerified(v === 'true'));
+    AsyncStorage.getItem(AGE_VERIFIED_KEY).then((v) => setAgeVerified(v === "true"));
   }, []);
 
-  if (ageVerified === null) {
+  if (ageVerified === null || !fontsSettled) {
     return <View style={styles.blank} />;
   }
 
@@ -50,20 +96,24 @@ export default function App() {
           screenOptions={{
             headerShown: false,
             tabBarStyle: styles.tabBar,
-            tabBarActiveTintColor: '#c8960c',
-            tabBarInactiveTintColor: '#a08050',
+            tabBarActiveTintColor: colors.primary,
+            tabBarInactiveTintColor: colors.muted,
             tabBarLabelStyle: styles.tabBarLabel,
           }}
         >
           <Tab.Screen
             name="Compass"
             component={CompassScreen}
-            options={{ tabBarIcon: ({ color }) => <Text style={[styles.tabIcon, { color }]}>◈</Text> }}
+            options={{
+              tabBarIcon: renderCompassIcon,
+            }}
           />
           <Tab.Screen
             name="Browse"
             component={BrowseScreen}
-            options={{ tabBarIcon: ({ color }) => <Text style={[styles.tabIcon, { color }]}>☰</Text> }}
+            options={{
+              tabBarIcon: renderBrowseIcon,
+            }}
           />
         </Tab.Navigator>
       </NavigationContainer>
@@ -74,19 +124,39 @@ export default function App() {
 const styles = StyleSheet.create({
   blank: {
     flex: 1,
-    backgroundColor: '#100a02',
+    backgroundColor: colors.background,
   },
   tabBar: {
-    backgroundColor: '#1c1005',
-    borderTopColor: '#c8960c33',
+    backgroundColor: colors.background,
+    borderTopColor: colors.border,
+    height: 68,
+    paddingTop: 8,
   },
   tabBarLabel: {
+    fontFamily: fonts.label,
     fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    letterSpacing: 1,
+    textTransform: "uppercase",
   },
-  tabIcon: {
-    fontSize: 18,
+  diamondSlot: {
+    width: 30,
+    height: 30,
+    marginBottom: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  diamondWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    transform: [{ rotate: "45deg" }],
+  },
+  diamondWrapFocused: {
+    backgroundColor: colors.primary,
+  },
+  diamondIconCounter: {
+    transform: [{ rotate: "-45deg" }],
   },
 });

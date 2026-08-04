@@ -1,25 +1,28 @@
-import React from "react";
+import { useEffect, useState } from "react";
 
+const INTERVAL_MS = 2500;
 
 const LOADING_MESSAGES = [
-    'Locating nearby stores…',
-    'Searching the area…',
-    'Checking OpenStreetMap data…',
-    'Finding the closest option…',
-    'Almost ready…',
-];
+  "Locating nearby stores…",
+  "Searching the area…",
+  "Finding the closest option…",
+  "Almost ready…",
+] as const;
 
+export const useRotatingMessage = (active: boolean): string => {
+  const [index, setIndex] = useState<number>(0);
 
-export const useRotatingMessage = (active: boolean, intervalMs = 2500): string => {
-    const [index, setIndex] = React.useState(0);
-    React.useEffect(() => {
-        if (!active) return;
-        setIndex(0);
-        const interval = setInterval(() => {
-            setIndex((i) => (i + 1) % LOADING_MESSAGES.length);
-        }, intervalMs);
-        return () => clearInterval(interval);
-    }, [active, intervalMs]);
+  useEffect(() => {
+    if (!active) return;
+    setIndex(0);
+    const interval = setInterval(
+      () => setIndex((i) => (i + 1) % LOADING_MESSAGES.length),
+      INTERVAL_MS,
+    );
+    return () => clearInterval(interval);
+  }, [active]);
 
-    return LOADING_MESSAGES[index];
-}
+  // Index is always in range via the modulo above; the fallback just keeps the
+  // return total for the compiler without an assertion.
+  return LOADING_MESSAGES[index] ?? LOADING_MESSAGES[0];
+};

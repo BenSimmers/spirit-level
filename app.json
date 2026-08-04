@@ -5,7 +5,8 @@
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "plugins": ["expo-font"],
     "ios": {
       "buildNumber": "3",
       "supportsTablet": false,

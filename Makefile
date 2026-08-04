@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 .PHONY: help install clean \
         start start-ios start-android start-web \
-        lint lint-fix typecheck check \
+        lint lint-fix typecheck check hooks \
         build-ios-preview build-ios-prod \
         build-android-preview build-android-prod \
         build-all-prod \
@@ -33,10 +33,13 @@ help:
 	@echo "  start-web            Start web version"
 	@echo ""
 	@echo "$(BOLD)Code quality$(RESET)"
-	@echo "  lint                 Run ESLint (zero warnings allowed)"
-	@echo "  lint-fix             Run ESLint with auto-fix"
+	@echo "  lint                 Run oxlint (zero warnings allowed)"
+	@echo "  lint-fix             Run oxlint with auto-fix"
+	@echo "  format               Format sources with oxfmt"
+	@echo "  format-check         Verify formatting without writing"
 	@echo "  typecheck            Run tsc --noEmit"
-	@echo "  check                lint + typecheck (run before committing)"
+	@echo "  check                lint + format-check + typecheck (run before committing)"
+	@echo "  hooks                Enable the pre-commit hook in .githooks"
 	@echo ""
 	@echo "$(BOLD)EAS Builds$(RESET)"
 	@echo "  build-ios-preview    Build iOS .ipa for internal distribution"
@@ -87,19 +90,33 @@ start-web:
 # Code quality
 # ─────────────────────────────────────────────────────────────────────────────
 lint:
-	@echo "$(CYAN)Running ESLint…$(RESET)"
-	npx eslint . --max-warnings 0
+	@echo "$(CYAN)Running oxlint…$(RESET)"
+	npx oxlint . --max-warnings 0
 
 lint-fix:
-	@echo "$(CYAN)Running ESLint with auto-fix…$(RESET)"
-	npx eslint . --fix
+	@echo "$(CYAN)Running oxlint with auto-fix…$(RESET)"
+	npx oxlint . --fix
+
+format:
+	@echo "$(CYAN)Running oxfmt…$(RESET)"
+	npx oxfmt .
+
+format-check:
+	@echo "$(CYAN)Checking formatting with oxfmt…$(RESET)"
+	npx oxfmt --check .
 
 typecheck:
 	@echo "$(CYAN)Running TypeScript type check…$(RESET)"
 	npx tsc --noEmit
 
-check: lint typecheck
+check: lint format-check typecheck
 	@echo "$(GREEN)All checks passed.$(RESET)"
+
+hooks:
+	@echo "$(CYAN)Enabling git hooks from .githooks…$(RESET)"
+	git config core.hooksPath .githooks
+	chmod +x .githooks/*
+	@echo "$(GREEN)Pre-commit hook active. Bypass with 'git commit --no-verify'.$(RESET)"
 
 build-ios-preview:
 	@echo "$(CYAN)Building iOS (preview)…$(RESET)"
