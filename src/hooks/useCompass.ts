@@ -1,19 +1,13 @@
 import * as Location from "expo-location";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated } from "react-native";
 import { compassLogger as log } from "../logger";
 import { NETWORK_ERROR, errorMessage, isAbort } from "../utils/errors";
-import { calculateBearing, haversineDistance } from "../utils/geo";
-import { requestLocationAccess } from "../utils/location";
+import { calculateBearing, hasMovedBeyondThreshold, haversineDistance } from "../utils/geo";
+import { requestLocationAccess, watchUserPosition } from "../utils/location";
 import type { LiquorStore, StoreProvider, UserLocation } from "../types";
 
-const REFETCH_THRESHOLD_M = 1000;
-
 const POSITION_TIMEOUT_MS = 10_000;
-
-const POSITION_DISTANCE_INTERVAL_M = 10;
-
-const POSITION_TIME_INTERVAL_MS = 5_000;
 
 const HEADING_EPSILON_DEG = 0.5;
 
@@ -32,9 +26,6 @@ export const useCompass = (storeProvider: StoreProvider) => {
   const lastFetchedLocation = useRef<UserLocation | null>(null);
   const abortController = useRef<AbortController | null>(null);
 
-  // The needle is driven natively rather than through React state: heading
-  // updates arrive at sensor rate, and re-rendering the whole screen for each
-  // one just to kick off an animation was the biggest source of render churn.
   const needleAngle = useRef(new Animated.Value(0)).current;
   const headingRef = useRef(0);
   const bearingRef = useRef<number | null>(null);
@@ -59,14 +50,12 @@ export const useCompass = (storeProvider: StoreProvider) => {
   const loadStore = useCallback(
     async (lat: number, lng: number, skipCache = false) => {
       const prev = lastFetchedLocation.current;
-      if (!skipCache && prev) {
-        const moved = haversineDistance(prev.lat, prev.lng, lat, lng);
-        if (moved < REFETCH_THRESHOLD_M) {
-          log.debug(`skipping fetch — only moved ${moved.toFixed(0)}m`);
-          return;
-        }
+      const next = { lat, lng };
+      if (!skipCache && prev && !hasMovedBeyondThreshold(prev, next)) {
+        log.debug("skipping fetch — inside refetch threshold");
+        return;
       }
-      lastFetchedLocation.current = { lat, lng };
+      lastFetchedLocation.current = next;
 
       // Cancel any previous in-flight request
       abortController.current?.abort();
@@ -129,14 +118,7 @@ export const useCompass = (storeProvider: StoreProvider) => {
         // Stage 2 — stay subscribed. The first callback is the high-accuracy fix
         // that used to be a one-shot here; every one after it is what keeps the
         // bearing and the distance readout honest as the user walks.
-        const sub = await Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.High,
-            distanceInterval: POSITION_DISTANCE_INTERVAL_M,
-            timeInterval: POSITION_TIME_INTERVAL_MS,
-          },
-          (loc) => setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude }),
-        );
+        const sub = await watchUserPosition(setUserLocation);
         if (cancelled) {
           sub.remove();
           return;
@@ -162,7 +144,6 @@ export const useCompass = (storeProvider: StoreProvider) => {
   }, [userLocation, loadStore]);
 
   // Bearing only moves when the target or our position does — recompute here and
-  // let the heading listener reuse it, rather than recomputing on every tick.
   useEffect(() => {
     if (!store || !userLocation) {
       bearingRef.current = null;
@@ -172,9 +153,20 @@ export const useCompass = (storeProvider: StoreProvider) => {
     animateNeedle();
   }, [store, userLocation, animateNeedle]);
 
+  // `store.distance` is fixed at fetch time, and we deliberately don't refetch
+  // until REFETCH_THRESHOLD_M — so recompute it against the live position rather
+  // than let the readout sit on the distance from wherever the fetch happened.
+  const liveStore = useMemo(() => {
+    if (!store || !userLocation) return store;
+    return {
+      ...store,
+      distance: haversineDistance(userLocation.lat, userLocation.lng, store.lat, store.lng),
+    };
+  }, [store, userLocation]);
+
   const refresh = useCallback(() => {
     if (userLocation) loadStore(userLocation.lat, userLocation.lng, true);
   }, [userLocation, loadStore]);
 
-  return { userLocation, needleAngle, store, error, loading, refresh };
+  return { userLocation, needleAngle, store: liveStore, error, loading, refresh };
 };

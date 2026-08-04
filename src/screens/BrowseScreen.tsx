@@ -98,7 +98,9 @@ export const BrowseScreen: React.FC = () => {
       ) : (
         <FlatList
           data={visiblePlaces}
-          keyExtractor={(item, i) => `${item.name}-${item.lat}-${item.lng}-${i}`}
+          // Coordinates identify a place independently of its position in the
+          // list, so rows move rather than remount when the sort order shifts.
+          keyExtractor={(item) => `${item.name}-${item.lat}-${item.lng}`}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />

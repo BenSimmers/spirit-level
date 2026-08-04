@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as Location from "expo-location";
 import { fetchNearbyPlaces } from "../api/googlePlaces";
 import { browseLogger as log } from "../logger";
 import { NETWORK_ERROR, errorMessage, isAbort } from "../utils/errors";
-import { requestLocationAccess } from "../utils/location";
+import { hasMovedBeyondThreshold, haversineDistance } from "../utils/geo";
+import { requestLocationAccess, watchUserPosition } from "../utils/location";
 import type { NearbyPlace, UserLocation } from "../types";
 
 export const useNearbyPlaces = () => {
@@ -11,9 +12,21 @@ export const useNearbyPlaces = () => {
   const [places, setPlaces] = useState<NearbyPlace[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const positionSub = useRef<Location.LocationSubscription | null>(null);
+  const lastFetchedLocation = useRef<UserLocation | null>(null);
   const abortController = useRef<AbortController | null>(null);
 
-  const loadPlaces = useCallback(async (lat: number, lng: number) => {
+  const loadPlaces = useCallback(async (lat: number, lng: number, force = false) => {
+    const prev = lastFetchedLocation.current;
+    const next = { lat, lng };
+    // fetchNearbyPlaces is deliberately never cached, so without this the
+    // position watch would turn every 10 m of walking into a fresh Places call.
+    if (!force && prev && !hasMovedBeyondThreshold(prev, next)) {
+      log.debug("skipping fetch — inside refetch threshold");
+      return;
+    }
+    lastFetchedLocation.current = next;
+
     abortController.current?.abort();
     abortController.current = new AbortController();
 
@@ -45,6 +58,14 @@ export const useNearbyPlaces = () => {
         });
         if (cancelled) return;
         setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+
+        // Then stay subscribed, so the distances track the user as they walk.
+        const sub = await watchUserPosition(setUserLocation);
+        if (cancelled) {
+          sub.remove();
+          return;
+        }
+        positionSub.current = sub;
       } catch (e) {
         if (cancelled) return;
         log.warn("location failed", e);
@@ -54,6 +75,7 @@ export const useNearbyPlaces = () => {
 
     return () => {
       cancelled = true;
+      positionSub.current?.remove();
       abortController.current?.abort();
     };
   }, []);
@@ -62,9 +84,19 @@ export const useNearbyPlaces = () => {
     if (userLocation) loadPlaces(userLocation.lat, userLocation.lng);
   }, [userLocation, loadPlaces]);
 
+  const livePlaces = useMemo(() => {
+    if (!userLocation) return places;
+    return places
+      .map((p) => ({
+        ...p,
+        distance: haversineDistance(userLocation.lat, userLocation.lng, p.lat, p.lng),
+      }))
+      .sort((a, b) => a.distance - b.distance);
+  }, [places, userLocation]);
+
   const refresh = useCallback(() => {
-    if (userLocation) loadPlaces(userLocation.lat, userLocation.lng);
+    if (userLocation) loadPlaces(userLocation.lat, userLocation.lng, true);
   }, [userLocation, loadPlaces]);
 
-  return { places, userLocation, error, loading, refresh };
+  return { places: livePlaces, userLocation, error, loading, refresh };
 };

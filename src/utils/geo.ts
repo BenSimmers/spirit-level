@@ -1,3 +1,5 @@
+import type { UserLocation } from "../types";
+
 export const toRad = (deg: number): number => (deg * Math.PI) / 180;
 
 export const calculateBearing = (
@@ -29,6 +31,14 @@ export const haversineDistance = (
     Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(deltaLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
 };
+
+// How far the user must travel before results are worth refetching. Kept at the
+// same scale as the ~1.1 km grid in storeCacheKey, so a refetch usually lands in
+// a new cache cell rather than re-reading the one we already have.
+export const REFETCH_THRESHOLD_M = 1000;
+
+export const hasMovedBeyondThreshold = (from: UserLocation, to: UserLocation): boolean =>
+  haversineDistance(from.lat, from.lng, to.lat, to.lng) >= REFETCH_THRESHOLD_M;
 
 export const formatDistance = (metres: number): string =>
   metres < 1000 ? `${Math.round(metres)} m` : `${(metres / 1000).toFixed(1)} km`;

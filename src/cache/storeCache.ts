@@ -5,17 +5,12 @@ import { asBoolean, asNumber, asRecord, asString } from "../utils/parse";
 
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-// toFixed(2) ≈ 1.1 km grid — keep in sync with REFETCH_THRESHOLD_M in useCompass
 export const storeCacheKey = (lat: number, lng: number) =>
   `places_cache_${lat.toFixed(2)},${lng.toFixed(2)}`;
 
-// In-memory layer so repeated calls within a session are instant
 type CacheEntry = { store: LiquorStore; ts: number };
 const memCache = new Map<string, CacheEntry>();
 
-// Entries written by an older build can outlive a schema change, so the required
-// fields are checked rather than asserted — a stale or truncated blob is treated
-// as a cache miss instead of surfacing `undefined` as a store name.
 const parseEntry = (value: unknown): CacheEntry | null => {
   const o = asRecord(value);
   const ts = asNumber(o?.ts);
