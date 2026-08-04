@@ -11,6 +11,10 @@ const REFETCH_THRESHOLD_M = 1000;
 
 const POSITION_TIMEOUT_MS = 10_000;
 
+const POSITION_DISTANCE_INTERVAL_M = 10;
+
+const POSITION_TIME_INTERVAL_MS = 5_000;
+
 const HEADING_EPSILON_DEG = 0.5;
 
 const shortestDelta = (from: number, to: number): number => ((to - from + 540) % 360) - 180;
@@ -24,6 +28,7 @@ export const useCompass = (storeProvider: StoreProvider) => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const headingSub = useRef<Location.LocationSubscription | null>(null);
+  const positionSub = useRef<Location.LocationSubscription | null>(null);
   const lastFetchedLocation = useRef<UserLocation | null>(null);
   const abortController = useRef<AbortController | null>(null);
 
@@ -121,15 +126,22 @@ export const useCompass = (storeProvider: StoreProvider) => {
           return;
         }
 
-        // Stage 2 — high-accuracy fix, silently updates if meaningfully different
-        const preciseLoc = await withTimeout(
-          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }),
-          POSITION_TIMEOUT_MS,
+        // Stage 2 — stay subscribed. The first callback is the high-accuracy fix
+        // that used to be a one-shot here; every one after it is what keeps the
+        // bearing and the distance readout honest as the user walks.
+        const sub = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.High,
+            distanceInterval: POSITION_DISTANCE_INTERVAL_M,
+            timeInterval: POSITION_TIME_INTERVAL_MS,
+          },
+          (loc) => setUserLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude }),
         );
-        if (cancelled) return;
-        if (preciseLoc) {
-          setUserLocation({ lat: preciseLoc.coords.latitude, lng: preciseLoc.coords.longitude });
+        if (cancelled) {
+          sub.remove();
+          return;
         }
+        positionSub.current = sub;
       } catch (e) {
         if (cancelled) return;
         setError(errorMessage(e, "Failed to get location."));
@@ -139,6 +151,7 @@ export const useCompass = (storeProvider: StoreProvider) => {
     return () => {
       cancelled = true;
       headingSub.current?.remove();
+      positionSub.current?.remove();
       abortController.current?.abort();
     };
     // animateNeedle is stable for the hook's lifetime, so this still runs once
